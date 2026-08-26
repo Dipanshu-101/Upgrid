@@ -1,5 +1,9 @@
 import express from 'express';
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./swagger.ts";
 const app = express();
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.post("/website", (req, res) => {
   // Handle the POST request to /website
@@ -13,4 +17,5 @@ app.get("/status/:websiteId", (req, res) => {
 });
 
 
-app.listen(process.env.PORT || 3000);
+
+app.listen(process.env.PORT || 5000);
