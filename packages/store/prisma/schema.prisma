@@ -1,0 +1,38 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Website {
+  id        String   @id @default(cuid())
+  url       String
+  timeAdded DateTime @default(now())
+}
+
+model Region {
+  id        String   @id @default(cuid())
+  name      String
+}
+
+model WebsiteTick{
+  id        String   @id @default(cuid())
+  name      String
+  status    WebsiteStatus
+  region_id String
+  website_id String
+}
+
+enum WebsiteStatus{
+  Up
+  Down
+  Unknown
+}
