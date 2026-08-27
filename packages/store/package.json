@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "generate": "prisma generate",
     "postinstall": "prisma skills sync || exit 0"
   },
   "exports": {
@@ -16,9 +17,12 @@
   "type": "commonjs",
   "devDependencies": {
     "@types/node": "26.3.0",
+    "@types/pg": "^8.23.1",
     "prisma": "7.9.1"
   },
   "dependencies": {
-    "dotenv": "^17.4.2"
+    "@prisma/adapter-pg": "^7.10.0",
+    "dotenv": "^17.4.2",
+    "pg": "^8.23.0"
   }
 }

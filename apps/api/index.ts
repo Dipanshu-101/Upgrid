@@ -1,6 +1,7 @@
 import express from 'express';
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./swagger.ts";
+import prismaClient from "@upgrid/store/client";
 const app = express();
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
