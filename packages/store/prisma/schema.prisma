@@ -16,17 +16,21 @@ model Website {
   id        String   @id @default(cuid())
   url       String
   timeAdded DateTime @default(now())
+  ticks     WebsiteTick[]
 }
 
 model Region {
   id        String   @id @default(cuid())
   name      String
+  ticks     WebsiteTick[]
 }
 
 model WebsiteTick{
   id        String   @id @default(cuid())
   name      String
   status    WebsiteStatus
+  region    Region   @relation(fields: [region_id], references: [id])
+  website   Website   @relation(fields: [website_id], references: [id])
   region_id String
   website_id String
 }
