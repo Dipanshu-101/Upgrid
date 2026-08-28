@@ -5,18 +5,18 @@ import jwt from 'jsonwebtoken';
 import { prismaClient } from 'store/client';
 import { AuthInput } from './types.js';
 import swaggerSpec from './swagger.js';
-
+import { authMiddleware } from './middleware.js';
 const app = express();
 app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.post('/website', async (_req, res, next) => {
+app.post('/website',authMiddleware, async (req, res, next ) => {
   try {
     const prisma = prismaClient as any;
     await prisma.website.create({
       data: {
-        url: 'https://example11.com',
-        userId: 'demo-user-id',
+        url: req.body.url,
+        userId: req.userId!,
         timeAdded: new Date(),
       },
     });
@@ -26,10 +26,29 @@ app.post('/website', async (_req, res, next) => {
   }
 });
 
-app.get('/status/:websiteId', (req, res) => {
-  const { websiteId } = req.params;
-  res.send(`Status for website ${websiteId}`);
-});
+
+app.get('/status/:websiteId', authMiddleware, async (req, res) => {
+      const website = await prismaClient.website.findFirst({
+        where: { 
+                userId: req.userId!,
+                id: req.params.websiteId!
+                },
+                include: { 
+                  ticks: {
+                    orderBy:[{
+                      createdAt: 'desc'
+                    }],
+                    take:1
+                  }
+                },
+      })
+      
+        if (!website) {
+          return res.status(404).send('Website not found');
+        } 
+        res.json(website);
+      
+    });
 
 app.post('/user/signup', async (req, res, next) => {
   try {
