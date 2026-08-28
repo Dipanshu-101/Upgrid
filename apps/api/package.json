@@ -16,9 +16,10 @@
   "dependencies": {
     "@types/express": "^5.0.6",
     "express": "^5.2.1",
+    "store": "workspace:*",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
-    "store": "workspace:*"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "26.3.0",
