@@ -1,16 +1,22 @@
-import axios from 'axios';
+import { describe, it, expect } from "vitest";
+import axios from "axios";
 
-const apiUrl = process.env.API_URL || 'http://localhost:5000';
+const BASE_URL = "http://localhost:3001";
 
-try {
-  const response = await axios.post(`${apiUrl}/website`);
-  console.log(`POST /website: ${response.status} ${response.data}`);
-} catch (error) {
-  if (axios.isAxiosError(error)) {
-    console.error(`POST /website failed: ${error.response?.status ?? 'no response'}`);
-    console.error(error.response?.data ?? error.message);
-  } else {
-    console.error(error);
-  }
-  process.exitCode = 1;
-}
+describe("Website gets created", () => {
+  it("Website not created if url is not present", async () => {
+    try {
+      await axios.post(`${BASE_URL}/website`, {});
+
+      expect(false, "website created when it shouldn't");
+    } catch (e) {}
+  });
+
+  it("Website is created if url is present", async () => {
+    const response = await axios.post(`${BASE_URL}/website`, {
+      url: "https://google.com",
+    });
+
+    expect(response.data.id).not.toBeNull();
+  });
+});
