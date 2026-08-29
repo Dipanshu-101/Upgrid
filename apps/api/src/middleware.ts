@@ -7,7 +7,11 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     return res.status(401).send('Authorization header missing');
   }
 
-  const token = authHeader.split(' ')[1];
+  const headerValue = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+  const token = headerValue.startsWith('Bearer ')
+    ? headerValue.slice('Bearer '.length).trim()
+    : headerValue.trim();
+
   if (!token) {
     return res.status(401).send('Token missing');
   }
