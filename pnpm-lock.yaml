@@ -60,6 +60,9 @@ importers:
 
   apps/pusher:
     dependencies:
+      redisstream:
+        specifier: workspace:*
+        version: link:../../packages/redis
       store:
         specifier: workspace:*
         version: link:../../packages/store

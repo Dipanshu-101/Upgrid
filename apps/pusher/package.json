@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-   "store": "workspace:*"
+   "store": "workspace:*",
+   "redisstream": "workspace:*"
   },
   "keywords": [],
   "author": "",
