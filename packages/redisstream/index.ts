@@ -5,10 +5,10 @@ const client = await createClient()
   .connect();
 
 type WebsiteEvent = {url:string,id:string}
-
+const STREAM_NAME = 'upgrid:website';
 async function xAdd({url,id}:WebsiteEvent){
     await client.xAdd (
-        'upgrid:website', '*', {
+        STREAM_NAME, '*', {
             url,
             id
         }
@@ -26,24 +26,14 @@ export async function xAddBulk(websties: WebsiteEvent[]) {
     }
 }
 
-export async function xReadGroup(groupName: string, consumerName: string) {
-    const result = await client.xReadGroup(
-        groupName,
-        consumerName,
-        { key: 'upgrid:website', id: '>' },
-        { COUNT: 10, BLOCK: 5000 }
+export async function xReadGroup(consumerGroup: string,workerId: string) {
+    await client.xReadGroup(
+        consumerGroup,
+        workerId,
+        { key: STREAM_NAME,
+             id: '>' }
     );
-
-    if (result) {
-        for (const stream of result) {
-            for (const message of stream.messages) {
-                console.log(`Received message from stream ${stream.name}:`, message);
-                // Process the message here
-            }
-        }
-
-
-
+}
 // Other application code
 //         │
 //         ↓
