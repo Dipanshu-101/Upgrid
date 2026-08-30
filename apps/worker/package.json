@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "dist/index.js",
+  "dependencies": {
+    "redisclient": "workspace:*"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "pnpm run build && pnpm run start",
