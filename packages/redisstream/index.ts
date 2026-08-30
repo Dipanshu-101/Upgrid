@@ -17,13 +17,13 @@ async function xAdd({url,id}:WebsiteEvent){
 
 
 
-export  async function xAddBulk(websties:WebsiteEvent[]){
-    for (let i = 0; i < websties.length; i++) {
+export async function xAddBulk(websties: WebsiteEvent[]) {
+    for (const website of websties) {
         await xAdd({
-           url:websties[i].url,
-           id:websties[i].id
-        })
-    } 
+            url: website.url,
+            id: website.id,
+        });
+    }
 }
 
 
