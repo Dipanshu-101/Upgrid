@@ -6,10 +6,11 @@ const client = await createClient()
 
 type WebsiteEvent = {url:string,id:string}
 
-export async function xAdd({url,id}:WebsiteEvent){
+async function xAdd({url,id}:WebsiteEvent){
     await client.xAdd (
         'upgrid:website', '*', {
-            
+            url,
+            id
         }
     );
     }
@@ -17,3 +18,28 @@ export async function xAdd({url,id}:WebsiteEvent){
 
 
 export  async function xAddBulk(websties:WebsiteEvent[]){
+    for (let i = 0; i < websties.length; i++) {
+        await xAdd({
+           url:websties[i].url,
+           id:websties[i].id
+        })
+    } 
+}
+
+
+
+
+
+// Other application code
+//         │
+//         ↓
+//    xAddBulk()
+//         │
+//         ├── xAdd()
+//         ├── xAdd()
+//         ├── xAdd()
+//         └── xAdd()
+//                 │
+//                 ↓
+//          Redis Stream
+//        upgrid:website
