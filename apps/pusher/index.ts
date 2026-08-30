@@ -1,6 +1,8 @@
 function main() {
-  console.log('Starting Pusher service...');
-  // Your Pusher service logic here
+ 
 }   
 
-main();
+
+setInterval(()=>{
+    main()
+}, 5000);
