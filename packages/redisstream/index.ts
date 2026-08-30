@@ -26,13 +26,18 @@ export async function xAddBulk(websties: WebsiteEvent[]) {
     }
 }
 
-export async function xReadGroup(consumerGroup: string,workerId: string) {
-    await client.xReadGroup(
+export async function xReadGroup(consumerGroup: string,workerId: string): Promise<any> {
+    const res = await client.xReadGroup(
         consumerGroup,
         workerId,
         { key: STREAM_NAME,
-             id: '>' }
+          id: '>'
+        },{
+                COUNT: 5,
+          }
     );
+    console.log(res);
+    return res;
 }
 // Other application code
 //         │
