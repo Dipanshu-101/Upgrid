@@ -58,6 +58,12 @@ importers:
         specifier: ^4.1.8
         version: 4.1.8
 
+  apps/pusher:
+    dependencies:
+      store:
+        specifier: workspace:*
+        version: link:../../packages/store
+
   apps/tests:
     dependencies:
       axios:

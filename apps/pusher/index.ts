@@ -1,3 +1,6 @@
+import {prismaClient} from "store/client";
+
+
 function main() {
  
 }   
@@ -5,4 +8,4 @@ function main() {
 
 setInterval(()=>{
     main()
-}, 5000);
+}, 3*1000);
