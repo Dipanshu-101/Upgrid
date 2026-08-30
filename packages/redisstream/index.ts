@@ -39,6 +39,25 @@ export async function xReadGroup(consumerGroup: string,workerId: string): Promis
     console.log(res);
     return res;
 }
+
+
+async function xAck(consumerGroup: string, eventId: string) {
+    await client.xAck(STREAM_NAME, consumerGroup, eventId)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Other application code
 //         │
 //         ↓
