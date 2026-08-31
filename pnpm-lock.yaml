@@ -119,9 +119,15 @@ importers:
 
   apps/worker:
     dependencies:
+      axios:
+        specifier: ^1.20.0
+        version: 1.20.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
       redisstream:
         specifier: workspace:*
         version: link:../../packages/redisstream
+      store:
+        specifier: workspace:*
+        version: link:../../packages/store
 
   packages/eslint-config:
     devDependencies:

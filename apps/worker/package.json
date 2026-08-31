@@ -4,7 +4,9 @@
   "description": "",
   "main": "dist/index.js",
   "dependencies": {
-    "redisstream": "workspace:*"
+    "axios": "^1.20.0",
+    "redisstream": "workspace:*",
+    "store": "workspace:*"
   },
   "scripts": {
     "build": "tsc",
