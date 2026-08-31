@@ -50,9 +50,12 @@ export async function xReadGroup(consumerGroup: string,workerId: string): Promis
     return messages;
 }
 
-
-export async function xAck(consumerGroup: string, eventId: string) {
+async function xAck(consumerGroup: string, eventId: string) {
     await client.xAck(STREAM_NAME, consumerGroup, eventId)
+}
+
+export async function xAckBulk(consumerGroup: string, eventIds: string[]) {
+    eventIds.map(eventId => xAck(consumerGroup, eventId));
 }
 
 
