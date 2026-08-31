@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "dependencies": {
-    "redisclient": "workspace:*"
+    "redisstream": "workspace:*"
   },
   "scripts": {
     "build": "tsc",

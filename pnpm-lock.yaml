@@ -117,7 +117,11 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
-  apps/worker: {}
+  apps/worker:
+    dependencies:
+      redisstream:
+        specifier: workspace:*
+        version: link:../../packages/redisstream
 
   packages/eslint-config:
     devDependencies:
