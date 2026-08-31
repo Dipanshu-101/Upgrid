@@ -10,7 +10,9 @@ async function main() {
 //  while(1) {
     //@ts-ignore
     const response = xReadGroup(REGION_ID, WORKER_ID);
-    response.map= await (())
+    response.map= await (({id,message}) => {
+        
+    });
     //@ts-ignore
     xAck(REGION_ID,"a");
 }
