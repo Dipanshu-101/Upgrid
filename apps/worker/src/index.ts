@@ -34,6 +34,20 @@ async function fetchWebsite(url: string, websiteId: string) {
                 })
                 resolve()
             })
+            .catch(async () => {
+                const endTime = Date.now();
+                await prismaClient.website_tick.create({
+                    data: {
+                        response_time_ms: endTime - startTime,
+                        status: "Down",
+                        region_id: REGION_ID,
+                        website_id: websiteId
+                    }
+                })
+                resolve()
+            })
+    })
+}
 
 // }
 main()
