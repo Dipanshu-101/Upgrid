@@ -17,5 +17,15 @@ async function main() {
     xAck(REGION_ID,"a");
 }
 
+async function fetchWebsite(url: string, websiteId: string) {
+    return new Promise<void>((resolve, reject) => {
+        const startTime = Date.now();
+
+        axios.get(url)
+            .then(async () => { 
+                const endTime = Date.now();
+                await prismaClient.website_tick.create({
+                    data: {
+
 // }
 main()
