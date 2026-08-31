@@ -5,6 +5,14 @@ const client = await createClient()
   .connect();
 
 type WebsiteEvent = {url:string,id:string}
+type MessageType = {
+    id: string,
+    message: {
+        url: string,
+        id: string
+    }
+    //@ts-ignore
+}
 const STREAM_NAME = 'upgrid:website';
 async function xAdd({url,id}:WebsiteEvent){
     await client.xAdd (
@@ -26,7 +34,7 @@ export async function xAddBulk(websties: WebsiteEvent[]) {
     }
 }
 
-export async function xReadGroup(consumerGroup: string,workerId: string): Promise<any> {
+export async function xReadGroup(consumerGroup: string,workerId: string): Promise<MessageType[] | undefined> {
     const res = await client.xReadGroup(
         consumerGroup,
         workerId,
@@ -36,18 +44,17 @@ export async function xReadGroup(consumerGroup: string,workerId: string): Promis
                 COUNT: 5,
           }
     );
-    console.log(res);
-    return res;
+ //@ts-ignore
+    let messages: MessageType[] | undefined = res?.[0]?.messages;
+
+    return messages;
 }
 
 
-async function xAck(consumerGroup: string, eventId: string) {
+export async function xAck(consumerGroup: string, eventId: string) {
     await client.xAck(STREAM_NAME, consumerGroup, eventId)
 }
 
-export async function xAckBulk(consumerGroup: string, eventIds: string[]) {
-    eventIds.map(eventId => xAck(consumerGroup, eventId));
-}
 
 
 

@@ -1,4 +1,4 @@
-import {xAckBulk ,xReadGroup } from 'redisstream/client';
+import {xAck ,xReadGroup } from 'redisstream/client';
 
 const REGION_ID = process.env.REGION_ID;
 const WORKER_ID = process.env.WORKER_ID;
@@ -10,8 +10,9 @@ async function main() {
 //  while(1) {
     //@ts-ignore
     const response = xReadGroup(REGION_ID, WORKER_ID);
+    response.map= await (())
     //@ts-ignore
-    xAckBulk(REGION_ID,"a");
+    xAck(REGION_ID,"a");
 }
 
 // }
