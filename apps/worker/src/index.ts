@@ -26,6 +26,14 @@ async function fetchWebsite(url: string, websiteId: string) {
                 const endTime = Date.now();
                 await prismaClient.website_tick.create({
                     data: {
+                       response_time_ms: endTime - startTime,
+                        status: "Up",
+                        region_id: REGION_ID,
+                        website_id: websiteId
+                    }
+                })
+                resolve()
+            })
 
 // }
 main()
