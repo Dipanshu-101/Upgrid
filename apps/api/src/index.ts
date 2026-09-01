@@ -59,7 +59,7 @@ app.get('/status/:websiteId', authMiddleware, async (req, res) => {
     include: {
       ticks: {
         orderBy: [{ createdAt: 'desc' }],
-        take: 1,
+        take: 10,
       },
     },
   });
