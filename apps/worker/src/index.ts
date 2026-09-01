@@ -1,14 +1,18 @@
-import {xAck ,xReadGroup } from 'redisstream/client';
+import {xAckBulk ,xReadGroup } from 'redisstream/client';
 import { prismaClient } from 'store/client';
 import axios from 'axios';
 
-
-const REGION_ID = process.env.REGION_ID;
-const WORKER_ID = process.env.WORKER_ID;
-
-if (!REGION_ID || !WORKER_ID) {
-  throw new Error('REGION_ID and WORKER_ID environment variables must be set');
+function getRequiredEnv(name: string): string {
+    const value = process.env[name];
+    if (!value) {
+        throw new Error(`${name} environment variable must be set`);
+    }
+    return value;
 }
+
+const REGION_ID = getRequiredEnv('REGION_ID');
+const WORKER_ID = getRequiredEnv('WORKER_ID');
+
 async function main() {
     while(1) {
         const response = await xReadGroup(REGION_ID, WORKER_ID);
@@ -32,7 +36,7 @@ async function fetchWebsite(url: string, websiteId: string) {
         axios.get(url)
             .then(async () => { 
                 const endTime = Date.now();
-                await prismaClient.WebsiteTick.create({
+                await prismaClient.website_tick.create({
                     data: {
                        response_time_ms: endTime - startTime,
                         status: "Up",
@@ -44,7 +48,7 @@ async function fetchWebsite(url: string, websiteId: string) {
             })
             .catch(async () => {
                 const endTime = Date.now();
-                await prismaClient.WebsiteTick.create({
+                await prismaClient.website_tick.create({
                     data: {
                         response_time_ms: endTime - startTime,
                         status: "Down",
