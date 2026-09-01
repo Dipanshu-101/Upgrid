@@ -1,50 +1,98 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --font-hanken-grotesk: 'Hanken Grotesk', sans-serif;
+    --font-space-mono: 'Space Mono', monospace;
   }
-}
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.imgDark {
-  display: none;
-}
-
-@media (prefers-color-scheme: dark) {
   html {
-    color-scheme: dark;
+    font-family: var(--font-hanken-grotesk), sans-serif;
   }
 
-  .imgLight {
-    display: none;
+  body {
+    background-color: #f9f9f9;
+    color: #1a1c1c;
+    min-height: 100vh;
   }
-  .imgDark {
-    display: unset;
+
+  .dark body {
+    background-color: #0a0a0a;
+    color: #f1f1f1;
   }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+/* Technical Graph-Paper Grid Background */
+.bg-grid {
+  background-size: 24px 24px;
+  background-image:
+    linear-gradient(to right, #e2e2e2 1px, transparent 1px),
+    linear-gradient(to bottom, #e2e2e2 1px, transparent 1px);
+}
+
+.dark .bg-grid {
+  background-image:
+    linear-gradient(to right, #1f1f1f 1px, transparent 1px),
+    linear-gradient(to bottom, #1f1f1f 1px, transparent 1px);
+}
+
+/* Brutalist Utility Classes */
+.brutal-border {
+  border: 2px solid #1a1c1c;
+}
+
+.dark .brutal-border {
+  border: 2px solid #333333;
+}
+
+.brutal-shadow {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.dark .brutal-shadow {
+  box-shadow: 4px 4px 0px 0px rgba(255, 255, 255, 0.15);
+}
+
+.brutal-shadow-sm {
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.dark .brutal-shadow-sm {
+  box-shadow: 2px 2px 0px 0px rgba(255, 255, 255, 0.15);
+}
+
+.brutal-shadow-lg {
+  box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.dark .brutal-shadow-lg {
+  box-shadow: 8px 8px 0px 0px rgba(255, 255, 255, 0.15);
+}
+
+.brutal-btn-hover {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.brutal-btn-hover:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.dark .brutal-btn-hover:hover {
+  box-shadow: 6px 6px 0px 0px rgba(255, 255, 255, 0.25);
+}
+
+.brutal-btn-hover:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.dark .brutal-btn-hover:active {
+  box-shadow: 2px 2px 0px 0px rgba(255, 255, 255, 0.15);
 }
