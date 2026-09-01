@@ -114,4 +114,25 @@ app.post('/user/signin', async (req, res, next) => {
   }
 });
 
+app.get("/websites", authMiddleware, async (req, res) => {
+  const authReq = req as AuthRequest;
+  const userId = authReq.userId;
+
+  if (!userId) {
+    return res.status(401).send('Unauthorized');
+  }
+
+  const websites = await prismaClient.website.findMany({
+    where: { userId },
+    include: {
+      ticks: {
+        orderBy: [{ createdAt: 'desc' }],
+        take: 10,
+      },
+    },
+  });
+
+  res.json(websites);
+});
+
 app.listen(process.env.PORT || 3003);
