@@ -19,4 +19,4 @@ console.log('Websites fetched:', websites.length);
 
 setInterval(() => {
   void main();
-}, 3 * 1000);
+}, 3 * 1000 * 60);
