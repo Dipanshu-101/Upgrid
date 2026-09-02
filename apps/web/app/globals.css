@@ -129,7 +129,7 @@
 }
 
 .brutal-shadow-hover {
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  transition: transform 0.1s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .brutal-shadow-hover:hover {
@@ -140,6 +140,43 @@
 .brutal-shadow-hover:active {
   transform: translate(2px, 2px);
   box-shadow: var(--shadow-hard-sm);
+}
+
+/* Micro-interaction & Focus Utilities */
+.brutal-btn-press {
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
+}
+
+.brutal-btn-press:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.dark .brutal-btn-press:active {
+  box-shadow: 1px 1px 0px 0px rgba(255, 255, 255, 0.2);
+}
+
+.brutal-focus:focus-visible {
+  outline: 2px solid #ccff00;
+  outline-offset: 2px;
+}
+
+/* Retro Terminal Scanline Effect */
+.bg-scanline {
+  position: relative;
+  overflow: hidden;
+}
+
+.bg-scanline::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+  background-size: 100% 4px;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.6;
 }
 
 /* Status Accents */
@@ -157,3 +194,4 @@
   background-color: #5e5e5e;
   color: #ffffff;
 }
+

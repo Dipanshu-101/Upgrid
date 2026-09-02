@@ -86,6 +86,34 @@ const config: Config = {
         "hard-lime": "4px 4px 0px 0px #ccff00",
         "hard-red": "4px 4px 0px 0px #ba1a1a",
       },
+      keyframes: {
+        "radar-ping": {
+          "0%": { transform: "scale(1)", opacity: "0.8" },
+          "50%": { transform: "scale(1.8)", opacity: "0.2" },
+          "100%": { transform: "scale(2.4)", opacity: "0" },
+        },
+        "caret-blink": {
+          "0%, 49%": { opacity: "1" },
+          "50%, 100%": { opacity: "0" },
+        },
+        "scan-line": {
+          "0%": { transform: "translateY(-100%)" },
+          "100%": { transform: "translateY(1000%)" },
+        },
+        "glitch-shift": {
+          "0%, 100%": { transform: "translate(0)" },
+          "20%": { transform: "translate(-2px, 2px)" },
+          "40%": { transform: "translate(-2px, -2px)" },
+          "60%": { transform: "translate(2px, 2px)" },
+          "80%": { transform: "translate(2px, -2px)" },
+        },
+      },
+      animation: {
+        "radar-ping": "radar-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite",
+        "caret-blink": "caret-blink 1s step-start infinite",
+        "scan-line": "scan-line 6s linear infinite",
+        "glitch-shift": "glitch-shift 0.2s ease-in-out",
+      },
     },
   },
   plugins: [],
