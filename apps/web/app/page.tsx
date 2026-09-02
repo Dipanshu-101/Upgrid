@@ -4,6 +4,7 @@ import * as React from "react";
 import { Button } from "@repo/ui/button";
 import { StatusBadge } from "@repo/ui/status-badge";
 import { LandingNavbar } from "@repo/ui/landing-navbar";
+import { LandingFooter } from "@repo/ui/landing-footer";
 import { StatCard } from "@repo/ui/stat-card";
 import { useRouter } from "next/navigation";
 
@@ -323,6 +324,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <LandingFooter />
     </div>
   );
 }
