@@ -54,7 +54,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyle =
-      "inline-flex items-center justify-center gap-2 font-bold uppercase transition-all duration-100 select-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none disabled:shadow-none";
+      "inline-flex items-center justify-center gap-2 font-bold uppercase transition-all duration-100 select-none cursor-pointer focus-visible:outline-2 focus-visible:outline-brand-lime focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none disabled:shadow-none";
 
     const widthStyle = fullWidth ? "w-full" : "";
     const variantStyle = variantStyles[variant];
