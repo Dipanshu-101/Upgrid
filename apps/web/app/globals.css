@@ -1,50 +1,197 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Typography Font Variables */
+    --font-hanken-grotesk: 'Hanken Grotesk', sans-serif;
+    --font-space-mono: 'Space Mono', monospace;
+
+    /* Light Theme Color Tokens */
+    --color-surface: #f9f9f9;
+    --color-surface-dim: #dadada;
+    --color-surface-bright: #ffffff;
+    --color-surface-lowest: #ffffff;
+    --color-surface-low: #f3f3f3;
+    --color-surface-container: #eeeeee;
+    --color-surface-high: #e8e8e8;
+    --color-surface-highest: #e2e2e2;
+    --color-surface-variant: #e2e2e2;
+
+    --color-ink: #1a1c1c;
+    --color-ink-secondary: #444933;
+    --color-ink-muted: #5e5e5e;
+
+    --color-border: #1a1c1c;
+    --color-border-subtle: #c4c9ac;
+    --color-grid-line: #dadada;
+
+    /* Accents */
+    --color-electric-lime: #ccff00;
+    --color-bright-red: #ba1a1a;
+    --color-cyan: #00f0ff;
+
+    /* Elevation / Hard Shadows */
+    --shadow-hard: 4px 4px 0px 0px rgba(26, 28, 28, 1);
+    --shadow-hard-sm: 2px 2px 0px 0px rgba(26, 28, 28, 1);
+    --shadow-hard-lg: 8px 8px 0px 0px rgba(26, 28, 28, 1);
+    --shadow-hard-hover: 6px 6px 0px 0px rgba(26, 28, 28, 1);
   }
-}
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
+  .dark {
+    /* Dark Theme Color Tokens */
+    --color-surface: #0a0a0a;
+    --color-surface-dim: #121212;
+    --color-surface-bright: #1f1f1f;
+    --color-surface-lowest: #050505;
+    --color-surface-low: #141414;
+    --color-surface-container: #1a1a1a;
+    --color-surface-high: #242424;
+    --color-surface-highest: #2c2c2c;
+    --color-surface-variant: #282828;
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-}
+    --color-ink: #f1f1f1;
+    --color-ink-secondary: #a0a0a0;
+    --color-ink-muted: #707070;
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
+    --color-border: #333333;
+    --color-border-subtle: #222222;
+    --color-grid-line: #1c1c1c;
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+    /* Elevation / Hard Shadows */
+    --shadow-hard: 4px 4px 0px 0px rgba(255, 255, 255, 0.15);
+    --shadow-hard-sm: 2px 2px 0px 0px rgba(255, 255, 255, 0.15);
+    --shadow-hard-lg: 8px 8px 0px 0px rgba(255, 255, 255, 0.2);
+    --shadow-hard-hover: 6px 6px 0px 0px rgba(255, 255, 255, 0.25);
+  }
 
-.imgDark {
-  display: none;
-}
-
-@media (prefers-color-scheme: dark) {
   html {
-    color-scheme: dark;
+    font-family: var(--font-hanken-grotesk), sans-serif;
   }
 
-  .imgLight {
-    display: none;
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+    min-height: 100vh;
   }
-  .imgDark {
-    display: unset;
+
+  * {
+    box-sizing: border-box;
+    border-color: var(--color-border);
   }
 }
+
+/* Technical Graph-Paper Grid Background */
+.bg-grid {
+  background-size: 24px 24px;
+  background-image:
+    linear-gradient(to right, var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-grid-line) 1px, transparent 1px);
+}
+
+/* Brutalist Structural Utilities */
+.brutal-border {
+  border: 2px solid var(--color-border);
+}
+
+.brutal-border-thick {
+  border: 3px solid var(--color-border);
+}
+
+.brutal-border-b {
+  border-bottom: 2px solid var(--color-border);
+}
+
+.brutal-border-t {
+  border-top: 2px solid var(--color-border);
+}
+
+.brutal-border-r {
+  border-right: 2px solid var(--color-border);
+}
+
+.brutal-border-l {
+  border-left: 2px solid var(--color-border);
+}
+
+/* Brutalist Shadow Utilities */
+.brutal-shadow {
+  box-shadow: var(--shadow-hard);
+}
+
+.brutal-shadow-sm {
+  box-shadow: var(--shadow-hard-sm);
+}
+
+.brutal-shadow-lg {
+  box-shadow: var(--shadow-hard-lg);
+}
+
+.brutal-shadow-hover {
+  transition: transform 0.1s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brutal-shadow-hover:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-hard-hover);
+}
+
+.brutal-shadow-hover:active {
+  transform: translate(2px, 2px);
+  box-shadow: var(--shadow-hard-sm);
+}
+
+/* Micro-interaction & Focus Utilities */
+.brutal-btn-press {
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
+}
+
+.brutal-btn-press:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.dark .brutal-btn-press:active {
+  box-shadow: 1px 1px 0px 0px rgba(255, 255, 255, 0.2);
+}
+
+.brutal-focus:focus-visible {
+  outline: 2px solid #ccff00;
+  outline-offset: 2px;
+}
+
+/* Retro Terminal Scanline Effect */
+.bg-scanline {
+  position: relative;
+  overflow: hidden;
+}
+
+.bg-scanline::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+  background-size: 100% 4px;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Status Accents */
+.status-up {
+  background-color: #ccff00;
+  color: #1a1c1c;
+}
+
+.status-down {
+  background-color: #ba1a1a;
+  color: #ffffff;
+}
+
+.status-unknown {
+  background-color: #5e5e5e;
+  color: #ffffff;
+}
+
