@@ -3,7 +3,7 @@
 # 📡 Uptime Monitoring Platform
 
 
- [Dashboard Preview](C:\Users\lenovo\Upgrid\packages\assest\dashboard-preview.png)
+![Dashboard Preview](./packages/assest/dashboard-preview.png)
 
 **A distributed, fault-tolerant system for monitoring website uptime across multiple regions.**
 
