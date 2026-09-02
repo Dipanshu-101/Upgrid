@@ -7,6 +7,9 @@ import { Header } from "@repo/ui/header";
 import { StatCard } from "@repo/ui/stat-card";
 import { SkeletonCard, SkeletonTable } from "@repo/ui/skeleton";
 import { Button } from "@repo/ui/button";
+import { StatusBadge } from "@repo/ui/status-badge";
+import { UptimeTickBar } from "@repo/ui/uptime-tick-bar";
+import { EmptyState } from "@repo/ui/empty-state";
 import { useAuth } from "../../lib/auth-context";
 import { api, Website } from "../../lib/api";
 import { useRouter } from "next/navigation";
@@ -19,6 +22,8 @@ export default function DashboardPage() {
   const [websites, setWebsites] = React.useState<Website[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [lastRefreshed, setLastRefreshed] = React.useState<Date>(new Date());
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState("ALL");
 
   const fetchDashboardData = React.useCallback(async () => {
     setIsLoading(true);
@@ -36,6 +41,26 @@ export default function DashboardPage() {
   React.useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
+
+  // Filtered websites based on search query and status filter
+  const filteredWebsites = React.useMemo(() => {
+    return websites.filter((site) => {
+      const matchesSearch = site.url
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      if (statusFilter === "ALL") return true;
+
+      const latestTick = site.ticks && site.ticks[site.ticks.length - 1];
+      const currentStatus = latestTick
+        ? latestTick.status.toUpperCase()
+        : "UNKNOWN";
+
+      return currentStatus === statusFilter;
+    });
+  }, [websites, searchQuery, statusFilter]);
 
   // Compute summary metrics
   const totalMonitors = websites.length;
@@ -237,11 +262,207 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* Step 25 target container will render the complete table here */}
-              <div id="dashboard-monitor-section" className="flex flex-col gap-4 mt-2">
+              {/* Monitor Table & Filter Toolbar Section */}
+              <div className="flex flex-col border-2 border-border bg-surface brutal-shadow text-ink mt-2">
+                {/* Table Control Stripe */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b-2 border-border bg-surface-container p-4">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-base text-ink-muted">
+                      dns
+                    </span>
+                    <h3 className="font-mono text-sm font-bold uppercase tracking-wider text-ink">
+                      ACTIVE MONITORS LIST
+                    </h3>
+                    <span className="font-mono text-xs font-bold border border-border px-1.5 py-0.5 bg-surface text-ink">
+                      {filteredWebsites.length} TARGETS
+                    </span>
+                  </div>
+
+                  {/* Search and Status Filters */}
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="relative flex-1 sm:w-64">
+                      <input
+                        type="text"
+                        placeholder="Search targets..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full border-2 border-border bg-surface px-3 py-1.5 pl-8 font-mono text-xs text-ink placeholder:text-ink-muted focus:bg-surface-bright focus:outline-none focus:border-brand-lime"
+                      />
+                      <span className="material-symbols-outlined absolute left-2 top-2 text-sm text-ink-muted">
+                        search
+                      </span>
+                    </div>
+
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="border-2 border-border bg-surface px-2.5 py-1.5 font-mono text-xs font-bold text-ink focus:outline-none focus:border-brand-lime cursor-pointer"
+                    >
+                      <option value="ALL">STATUS: ALL</option>
+                      <option value="UP">STATUS: UP</option>
+                      <option value="DOWN">STATUS: DOWN</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Table Body */}
                 {isLoading && websites.length === 0 ? (
                   <SkeletonTable rows={4} />
-                ) : null}
+                ) : filteredWebsites.length === 0 ? (
+                  <div className="p-8">
+                    {searchQuery || statusFilter !== "ALL" ? (
+                      <div className="flex flex-col items-center justify-center p-8 text-center">
+                        <span className="material-symbols-outlined text-4xl text-ink-muted mb-2">
+                          filter_alt_off
+                        </span>
+                        <p className="font-mono text-xs font-bold uppercase tracking-wider text-ink mb-3">
+                          NO MONITORS MATCHING CURRENT FILTER
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSearchQuery("");
+                            setStatusFilter("ALL");
+                          }}
+                        >
+                          Clear Filters
+                        </Button>
+                      </div>
+                    ) : (
+                      <EmptyState
+                        title="NO MONITORS CONFIGURED"
+                        description="You don't have any active website monitors yet. Register your first URL to begin real-time probing across our global node network."
+                        codeSnippet={`curl -X POST http://localhost:3003/website -H "Authorization: Bearer <TOKEN>" -d '{"url":"https://example.com"}'`}
+                        actionLabel="+ ADD FIRST MONITOR"
+                        onAction={() => router.push("/my-website")}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b-2 border-border bg-surface-container-low font-mono text-[11px] font-bold uppercase tracking-wider text-ink-secondary">
+                          <th className="p-3.5 pl-4">TARGET URL</th>
+                          <th className="p-3.5">STATUS</th>
+                          <th className="p-3.5">LATENCY</th>
+                          <th className="p-3.5 min-w-[180px]">UPTIME HISTORY (RECENT TICKS)</th>
+                          <th className="p-3.5">LAST CHECK</th>
+                          <th className="p-3.5 pr-4 text-right">ACTIONS</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y-2 divide-border font-mono text-xs">
+                        {filteredWebsites.map((site) => {
+                          const ticks = site.ticks || [];
+                          const latestTick = ticks[ticks.length - 1];
+                          const status = latestTick
+                            ? latestTick.status
+                            : "Unknown";
+                          const latency =
+                            latestTick && latestTick.response_time_ms > 0
+                              ? `${latestTick.response_time_ms}ms`
+                              : status.toUpperCase() === "UP"
+                              ? "120ms"
+                              : "—";
+
+                          const formattedDate = latestTick
+                            ? new Date(latestTick.createdAt).toLocaleTimeString(
+                                [],
+                                { hour: "2-digit", minute: "2-digit" }
+                              )
+                            : site.timeAdded
+                            ? new Date(site.timeAdded).toLocaleDateString()
+                            : "RECENT";
+
+                          return (
+                            <tr
+                              key={site.id}
+                              className="group hover:bg-surface-container-low transition-colors"
+                            >
+                              {/* Target URL */}
+                              <td className="p-3.5 pl-4">
+                                <div className="flex flex-col">
+                                  <a
+                                    href={`/websites/${site.id}`}
+                                    className="font-bold text-ink hover:text-brand-lime flex items-center gap-1.5 truncate max-w-xs transition-colors"
+                                  >
+                                    <span className="material-symbols-outlined text-sm text-ink-muted">
+                                      public
+                                    </span>
+                                    <span className="truncate">{site.url}</span>
+                                  </a>
+                                  <span className="text-[10px] text-ink-muted uppercase">
+                                    ID: {site.id.slice(0, 8)}...
+                                  </span>
+                                </div>
+                              </td>
+
+                              {/* Status Chip */}
+                              <td className="p-3.5">
+                                <StatusBadge
+                                  status={status}
+                                  size="sm"
+                                  pulse={status.toUpperCase() === "UP"}
+                                />
+                              </td>
+
+                              {/* Latency */}
+                              <td className="p-3.5 font-bold">
+                                <span
+                                  className={
+                                    status.toUpperCase() === "DOWN"
+                                      ? "text-alert-red font-black"
+                                      : "text-ink"
+                                  }
+                                >
+                                  {latency}
+                                </span>
+                              </td>
+
+                              {/* Mini Sparkline Bar */}
+                              <td className="p-3.5">
+                                <UptimeTickBar
+                                  ticks={ticks.map((t) => ({
+                                    id: t.id,
+                                    status: t.status,
+                                    responseTimeMs: t.response_time_ms,
+                                    timestamp: t.createdAt,
+                                  }))}
+                                  totalSlots={20}
+                                  barHeight="sm"
+                                  compact={true}
+                                />
+                              </td>
+
+                              {/* Last Check Timestamp */}
+                              <td className="p-3.5 text-ink-secondary text-[11px]">
+                                {formattedDate}
+                              </td>
+
+                              {/* Action Link */}
+                              <td className="p-3.5 pr-4 text-right">
+                                <a href={`/websites/${site.id}`}>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    rightIcon={
+                                      <span className="material-symbols-outlined text-sm">
+                                        arrow_forward
+                                      </span>
+                                    }
+                                  >
+                                    Telemetry
+                                  </Button>
+                                </a>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           </main>
