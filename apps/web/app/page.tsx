@@ -4,6 +4,7 @@ import * as React from "react";
 import { Button } from "@repo/ui/button";
 import { StatusBadge } from "@repo/ui/status-badge";
 import { LandingNavbar } from "@repo/ui/landing-navbar";
+import { StatCard } from "@repo/ui/stat-card";
 import { useRouter } from "next/navigation";
 
 const TICKER_LINES = [
@@ -184,6 +185,142 @@ export default function LandingPage() {
             <div className="h-px flex-1 bg-border max-w-24" />
           </div>
           <TerminalTicker />
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════
+          LIVE REGIONAL NODE STATUS GRID
+      ═══════════════════════════════════════════════════════ */}
+      <section id="metrics" className="w-full border-t-2 border-border bg-surface-container-low px-4 sm:px-6 lg:px-8 py-16">
+        <div className="mx-auto max-w-6xl flex flex-col gap-10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="font-hanken text-2xl sm:text-3xl font-black uppercase tracking-tight text-ink">
+                DISTRIBUTED PROBE NODES
+              </h2>
+              <p className="font-mono text-xs text-ink-muted mt-1 uppercase tracking-wider">
+                REAL-TIME LATENCY ACROSS GLOBAL REGIONS
+              </p>
+            </div>
+            <div className="flex items-center gap-2 border-2 border-border px-3 py-2 bg-surface brutal-shadow-sm font-mono text-xs font-bold">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full bg-brand-lime opacity-75" />
+                <span className="relative inline-flex h-2 w-2 bg-brand-lime" />
+              </span>
+              PROBES RUNNING
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { region: "AP-SOUTH-1", location: "Mumbai, IN", latency: "142ms", status: "Up" as const, uptime: "99.98%" },
+              { region: "US-EAST-1",  location: "Virginia, US", latency: "89ms",  status: "Up" as const, uptime: "99.99%" },
+              { region: "EU-WEST-1",  location: "Dublin, IE", latency: "203ms", status: "Up" as const, uptime: "99.97%" },
+            ].map((node) => (
+              <StatCard
+                key={node.region}
+                title={node.region}
+                metric={node.latency}
+                sublabel={node.location}
+                delta={{ value: `${node.uptime} UPTIME`, type: "positive" }}
+              />
+            ))}
+          </div>
+
+          {/* Aggregate Metrics Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t-2 border-dashed border-border pt-8">
+            {[
+              { label: "TOTAL MONITORS", value: "—", icon: "language" },
+              { label: "AVG LATENCY",    value: "145ms", icon: "ssid_chart" },
+              { label: "INCIDENTS (30D)",value: "3",    icon: "warning" },
+              { label: "GLOBAL UPTIME",  value: "99.98%",icon: "check_circle" },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="flex flex-col gap-1.5 border-2 border-border bg-surface p-4 brutal-shadow-sm"
+              >
+                <div className="flex items-center gap-2 text-ink-muted">
+                  <span className="material-symbols-outlined text-sm">{stat.icon}</span>
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest">{stat.label}</span>
+                </div>
+                <span className="font-mono text-2xl font-black text-ink">{stat.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════
+          FEATURE BREAKDOWN
+      ═══════════════════════════════════════════════════════ */}
+      <section id="features" className="w-full border-t-2 border-border bg-surface px-4 sm:px-6 lg:px-8 py-16">
+        <div className="mx-auto max-w-6xl flex flex-col gap-10">
+          <div className="flex flex-col items-center text-center gap-2">
+            <h2 className="font-hanken text-2xl sm:text-3xl font-black uppercase tracking-tight text-ink">
+              ENGINEERING-GRADE OBSERVABILITY
+            </h2>
+            <p className="font-sans text-sm text-ink-secondary max-w-xl">
+              Everything your team needs to maintain reliability SLAs — built for speed, precision, and scale.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              {
+                icon: "radar",
+                title: "MULTI-REGION PROBING",
+                description: "Distributed probe nodes across 3 global regions. Detect region-specific outages, routing failures, and CDN degradation.",
+                highlight: "lime",
+              },
+              {
+                icon: "ssid_chart",
+                title: "LATENCY TELEMETRY",
+                description: "Sub-millisecond response time tracking with P50/P95/P99 percentile breakdown and 90-day trend history.",
+                highlight: "default",
+              },
+              {
+                icon: "notifications_active",
+                title: "INSTANT ALERTING",
+                description: "Get alerted within seconds of a failure. Configurable severity thresholds, webhook delivery, and silence windows.",
+                highlight: "default",
+              },
+              {
+                icon: "history",
+                title: "90-DAY HISTORY",
+                description: "Full tick-by-tick uptime history with visual segments. Drill down by region, time window, or status type.",
+                highlight: "default",
+              },
+              {
+                icon: "lock",
+                title: "SECURE BY DEFAULT",
+                description: "JWT-based authentication with bcrypt password hashing. Your monitoring data is private and operator-controlled.",
+                highlight: "default",
+              },
+              {
+                icon: "terminal",
+                title: "OPEN API",
+                description: "Full REST API with Bearer auth. Integrate monitoring data into your own dashboards, CI pipelines, or incident tools.",
+                highlight: "cyan",
+              },
+            ].map((feature) => (
+              <div
+                key={feature.title}
+                className={`flex flex-col gap-3 border-2 border-border p-5 brutal-shadow hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-100 ${
+                  feature.highlight === "lime"
+                    ? "bg-brand-lime text-black"
+                    : feature.highlight === "cyan"
+                    ? "bg-accent-cyan text-black"
+                    : "bg-surface text-ink"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-2xl">{feature.icon}</span>
+                  <h3 className="font-mono text-xs font-bold uppercase tracking-widest">{feature.title}</h3>
+                </div>
+                <p className="font-sans text-sm leading-relaxed opacity-80">{feature.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     </div>
