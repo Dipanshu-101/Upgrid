@@ -48,7 +48,8 @@ export default function SignInPage() {
     } catch (err: unknown) {
       let message = "Authentication failed. Check your credentials.";
       if (axios.isAxiosError(err)) {
-        message = err.response?.data?.message || message;
+        const data = err.response?.data;
+        message = typeof data === "string" ? data : data?.message || message;
       }
       setErrors({ form: message });
       toastError("ACCESS DENIED", message);

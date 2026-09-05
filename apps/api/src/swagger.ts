@@ -1,6 +1,6 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3003;
 
 const options = {
   definition: {

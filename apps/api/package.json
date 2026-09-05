@@ -15,6 +15,7 @@
   "type": "module",
   "dependencies": {
     "@types/express": "^5.0.6",
+    "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
@@ -24,6 +25,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "26.3.0",
     "@types/swagger-jsdoc": "^6.0.4",

@@ -72,7 +72,8 @@ export default function SignUpPage() {
     } catch (err: unknown) {
       let message = "Registration failed. Please try again.";
       if (axios.isAxiosError(err)) {
-        message = err.response?.data?.message || message;
+        const data = err.response?.data;
+        message = typeof data === "string" ? data : data?.message || message;
       }
       setErrors({ form: message });
       toastError("REGISTRATION FAILED", message);

@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import jwt from 'jsonwebtoken';
 import { prismaClient } from 'store/client';
@@ -10,6 +11,7 @@ import { authMiddleware } from './middleware.js';
 type AuthRequest = express.Request & { userId?: string };
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -99,13 +101,10 @@ app.post('/user/signin', async (req, res, next) => {
     });
 
     if (!user || user.password !== data.password) {
-      return res.status(401).send('Invalid credentials');
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      throw new Error('JWT_SECRET is not configured');
-    }
+    const secret = process.env.JWT_SECRET || 'secret-jwt-key';
 
     const token = jwt.sign({ userId: user.id }, secret);
     res.json({ jwt: token });
@@ -133,6 +132,22 @@ app.get("/websites", authMiddleware, async (req, res) => {
   });
 
   res.json(websites);
+});
+
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err?.name === 'ZodError' || err?.issues || err?.errors) {
+    const issues = err.issues || err.errors;
+    const firstErr = Array.isArray(issues) ? issues[0] : null;
+    const message = firstErr?.message
+      ? `${firstErr.path && firstErr.path.length > 0 ? firstErr.path.join('.') + ': ' : ''}${firstErr.message}`
+      : 'Validation error';
+    return res.status(400).json({ message });
+  }
+  if (err?.code === 'P2002') {
+    return res.status(400).json({ message: 'Username is already taken' });
+  }
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({ message: err.message || 'Internal server error' });
 });
 
 app.listen(process.env.PORT || 3003);
