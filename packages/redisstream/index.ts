@@ -4,7 +4,6 @@ const client = await createClient()
   .on("error", (err) => console.log("Redis Client Error", err))
   .connect();
 
-type WebsiteEvent = {url:string,id:string}
 type MessageType = {
     id: string,
     message: {
@@ -13,10 +12,22 @@ type MessageType = {
     }
     //@ts-ignore
 }
-const STREAM_NAME = 'upgrid:website';
-async function xAdd({url,id}:WebsiteEvent){
+const STREAM_PREFIX = 'upgrid:website';
+const CONSUMER_GROUP = 'workers';
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function getStreamName(regionId: string): string {
+    if (!UUID_PATTERN.test(regionId)) {
+        throw new Error(`Invalid region UUID: ${regionId}`);
+    }
+    return `${STREAM_PREFIX}:${regionId}`;
+}
+
+type WebsiteEvent = {url:string,id:string,regionId:string}
+async function xAdd({url,id,regionId}:WebsiteEvent){
+    const streamName = getStreamName(regionId);
     await client.xAdd (
-        STREAM_NAME, '*', {
+        streamName, '*', {
             url,
             id
         }
@@ -30,18 +41,29 @@ export async function xAddBulk(websties: WebsiteEvent[]) {
         await xAdd({
             url: website.url,
             id: website.id,
+            regionId: website.regionId,
         });
     }
 }
 
-export async function xReadGroup(consumerGroup: string,workerId: string): Promise<MessageType[] | undefined> {
+export async function xReadGroup(regionId: string,workerId: string): Promise<MessageType[] | undefined> {
+    const streamName = getStreamName(regionId);
+    try {
+        await client.xGroupCreate(streamName, CONSUMER_GROUP, '0', { MKSTREAM: true });
+    } catch (error) {
+        if (!(error instanceof Error) || !error.message.includes('BUSYGROUP')) {
+            throw error;
+        }
+    }
+
     const res = await client.xReadGroup(
-        consumerGroup,
+        CONSUMER_GROUP,
         workerId,
-        { key: STREAM_NAME,
+        { key: streamName,
           id: '>'
         },{
                 COUNT: 5,
+                                BLOCK: 5000,
           }
     );
  //@ts-ignore
@@ -50,12 +72,12 @@ export async function xReadGroup(consumerGroup: string,workerId: string): Promis
     return messages;
 }
 
-async function xAck(consumerGroup: string, eventId: string) {
-    await client.xAck(STREAM_NAME, consumerGroup, eventId)
+async function xAck(regionId: string, eventId: string) {
+    await client.xAck(getStreamName(regionId), CONSUMER_GROUP, eventId)
 }
 
 export async function xAckBulk(consumerGroup: string, eventIds: string[]) {
-    eventIds.map(eventId => xAck(consumerGroup, eventId));
+    await Promise.all(eventIds.map(eventId => xAck(consumerGroup, eventId)));
 }
 
 

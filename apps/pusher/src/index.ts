@@ -8,15 +8,31 @@ async function main() {
       id: true,
     },
   });
-console.log('Websites fetched:', websites.length);
-  await xAddBulk(
-    websites.map((website) => ({
-      url: website.url,
-      id: website.id,
-    })),
-  );
+  const regions = await prismaClient.region.findMany({
+    select: {
+      id: true,
+    },
+  });
+  console.log('Websites fetched:', websites.length);
+  console.log('Regions found:', regions.length);
+  for (const region of regions) {
+    await xAddBulk(
+      websites.map((website) => ({
+        url: website.url,
+        id: website.id,
+        regionId: region.id,
+      })),
+    );
+  }
 }
 
+void main().catch((error) => {
+  console.error('Pusher stopped:', error);
+  process.exitCode = 1;
+});
+
 setInterval(() => {
-  void main();
-}, 3 * 1000 * 60);
+  void main().catch((error) => {
+    console.error('Pusher run failed:', error);
+  });
+}, 3 * 1000);

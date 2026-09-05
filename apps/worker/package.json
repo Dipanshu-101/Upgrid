@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "dependencies": {
     "axios": "^1.20.0",
+    "dotenv": "^17.4.2",
     "redisstream": "workspace:*",
     "store": "workspace:*"
   },

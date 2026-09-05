@@ -134,6 +134,9 @@ importers:
       axios:
         specifier: ^1.20.0
         version: 1.20.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       redisstream:
         specifier: workspace:*
         version: link:../../packages/redisstream
