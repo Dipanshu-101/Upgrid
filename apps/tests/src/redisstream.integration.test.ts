@@ -46,4 +46,25 @@ describe.skipIf(!runRedisIntegration)('global probe stream', () => {
     expect(indiaMessages?.map(({message}) => message.id)).toEqual(probes.map(({id}) => id));
     expect(usMessages?.map(({message}) => message.id)).toEqual(probes.map(({id}) => id));
   });
+
+  it('distributes probes among workers in one region group', async () => {
+    const suffix = Date.now();
+    const probes = Array.from({length: 8}, (_, index) => ({
+      id: `probe-${suffix}-${index}`,
+      url: `https://${index}.example.com`,
+    }));
+
+    await xAddBulk(probes);
+    const [workerOneMessages, workerTwoMessages] = await Promise.all([
+      xReadGroup(`india-${suffix}`, `india-worker-1-${suffix}`),
+      xReadGroup(`india-${suffix}`, `india-worker-2-${suffix}`),
+    ]);
+    const workerOneIds = workerOneMessages?.map(({message}) => message.id) ?? [];
+    const workerTwoIds = workerTwoMessages?.map(({message}) => message.id) ?? [];
+
+    expect(workerOneIds.length).toBeGreaterThan(0);
+    expect(workerTwoIds.length).toBeGreaterThan(0);
+    expect(new Set([...workerOneIds, ...workerTwoIds])).toEqual(new Set(probes.map(({id}) => id)));
+    expect(workerOneIds.filter((id) => workerTwoIds.includes(id))).toEqual([]);
+  });
 });
