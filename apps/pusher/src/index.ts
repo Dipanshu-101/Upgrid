@@ -8,22 +8,8 @@ async function main() {
       id: true,
     },
   });
-  const regions = await prismaClient.region.findMany({
-    select: {
-      id: true,
-    },
-  });
   console.log('Websites fetched:', websites.length);
-  console.log('Regions found:', regions.length);
-  for (const region of regions) {
-    await xAddBulk(
-      websites.map((website) => ({
-        url: website.url,
-        id: website.id,
-        regionId: region.id,
-      })),
-    );
-  }
+  await xAddBulk(websites);
 }
 
 void main().catch((error) => {

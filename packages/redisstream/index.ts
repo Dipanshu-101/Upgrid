@@ -32,11 +32,10 @@ function getStreamName(regionId: string): string {
     return `${STREAM_PREFIX}:${regionId}`;
 }
 
-type WebsiteEvent = {url:string,id:string,regionId:string}
-async function xAdd({url,id,regionId}:WebsiteEvent){
-    const streamName = getStreamName(regionId);
+type WebsiteEvent = {url:string,id:string}
+async function xAdd({url,id}:WebsiteEvent){
     await client.xAdd (
-        streamName, '*', {
+        PROBE_STREAM, '*', {
             url,
             id
         }
@@ -50,7 +49,6 @@ export async function xAddBulk(websties: WebsiteEvent[]) {
         await xAdd({
             url: website.url,
             id: website.id,
-            regionId: website.regionId,
         });
     }
 }
