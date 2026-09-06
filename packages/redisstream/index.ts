@@ -12,6 +12,11 @@ type MessageType = {
     }
     //@ts-ignore
 }
+
+export type AutoClaimResult = {
+    nextId: string;
+    messages: MessageType[];
+};
 export const PROBE_STREAM = 'upgrid:probes';
 
 export function getRegionConsumerGroup(region: string): string {
@@ -77,6 +82,27 @@ export async function xReadGroup(regionId: string,workerId: string): Promise<Mes
     let messages: MessageType[] | undefined = res?.[0]?.messages;
 
     return messages;
+}
+
+export async function xAutoClaim(
+    region: string,
+    workerId: string,
+    minIdleTime = 60_000,
+    startId = '0-0',
+): Promise<AutoClaimResult> {
+    const result = await client.xAutoClaim(
+        PROBE_STREAM,
+        getRegionConsumerGroup(region),
+        workerId,
+        minIdleTime,
+        startId,
+        { COUNT: 5 },
+    );
+
+    return {
+        nextId: result.nextId,
+        messages: result.messages.filter((message): message is MessageType => message !== null),
+    };
 }
 
 async function xAck(regionId: string, eventId: string) {
