@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createClient } from 'redis';
-import { xAddBulk, xReadGroup } from 'redisstream/client';
+import { xAckBulk, xAddBulk, xAutoClaim, xReadGroup } from 'redisstream/client';
 
 const runRedisIntegration = process.env.RUN_REDIS_INTEGRATION === '1';
 const redisClient = runRedisIntegration
@@ -66,5 +66,22 @@ describe.skipIf(!runRedisIntegration)('global probe stream', () => {
     expect(workerTwoIds.length).toBeGreaterThan(0);
     expect(new Set([...workerOneIds, ...workerTwoIds])).toEqual(new Set(probes.map(({id}) => id)));
     expect(workerOneIds.filter((id) => workerTwoIds.includes(id))).toEqual([]);
+  });
+
+  it('keeps acknowledgements isolated between region groups', async () => {
+    const suffix = Date.now();
+    const probe = { id: `probe-${suffix}`, url: 'https://one.example.com' };
+
+    await xAddBulk([probe]);
+    const indiaMessages = await xReadGroup(`india-${suffix}`, `india-worker-${suffix}`);
+    const usMessages = await xReadGroup(`us-${suffix}`, `us-worker-${suffix}`);
+
+    await xAckBulk(`india-${suffix}`, indiaMessages?.map(({id}) => id) ?? []);
+    const recoveredIndia = await xAutoClaim(`india-${suffix}`, `india-recovery-${suffix}`, 0);
+    const recoveredUs = await xAutoClaim(`us-${suffix}`, `us-recovery-${suffix}`, 0);
+
+    expect(recoveredIndia.messages.map(({message}) => message.id)).not.toContain(probe.id);
+    expect(recoveredUs.messages.map(({message}) => message.id)).toContain(probe.id);
+    expect(usMessages?.map(({message}) => message.id)).toContain(probe.id);
   });
 });
