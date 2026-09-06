@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import {xAckBulk ,xReadGroup } from 'redisstream/client';
+import {xAckBulk, xAutoClaim, xReadGroup} from 'redisstream/client';
 import { prismaClient } from 'store/client';
 import axios from 'axios';
 
@@ -18,8 +18,15 @@ const WORKER_ID = getRequiredEnv('WORKER_ID');
 console.log(`Worker ${WORKER_ID} listening on region ${REGION}`);
 
 async function main() {
+    let claimCursor = '0-0';
+
     while(1) {
-        const response = await xReadGroup(REGION, WORKER_ID);
+        const claimed = await xAutoClaim(REGION, WORKER_ID, 60_000, claimCursor);
+        claimCursor = claimed.nextId;
+
+        const response = claimed.messages.length > 0
+            ? claimed.messages
+            : await xReadGroup(REGION, WORKER_ID);
 
         if (!response) {
             continue;

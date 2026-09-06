@@ -48,6 +48,16 @@ async function xAdd({url,id}:WebsiteEvent){
     }
 
 
+async function ensureConsumerGroup(region: string) {
+    try {
+        await client.xGroupCreate(PROBE_STREAM, getRegionConsumerGroup(region), '0', { MKSTREAM: true });
+    } catch (error) {
+        if (!(error instanceof Error) || !error.message.includes('BUSYGROUP')) {
+            throw error;
+        }
+    }
+}
+
 
 export async function xAddBulk(websties: WebsiteEvent[]) {
     for (const website of websties) {
@@ -60,13 +70,7 @@ export async function xAddBulk(websties: WebsiteEvent[]) {
 
 export async function xReadGroup(regionId: string,workerId: string): Promise<MessageType[] | undefined> {
     const consumerGroup = getRegionConsumerGroup(regionId);
-    try {
-        await client.xGroupCreate(PROBE_STREAM, consumerGroup, '0', { MKSTREAM: true });
-    } catch (error) {
-        if (!(error instanceof Error) || !error.message.includes('BUSYGROUP')) {
-            throw error;
-        }
-    }
+    await ensureConsumerGroup(regionId);
 
     const res = await client.xReadGroup(
                 consumerGroup,
@@ -90,6 +94,7 @@ export async function xAutoClaim(
     minIdleTime = 60_000,
     startId = '0-0',
 ): Promise<AutoClaimResult> {
+    await ensureConsumerGroup(region);
     const result = await client.xAutoClaim(
         PROBE_STREAM,
         getRegionConsumerGroup(region),
