@@ -12,6 +12,15 @@ type MessageType = {
     }
     //@ts-ignore
 }
+export const PROBE_STREAM = 'upgrid:probes';
+
+export function getRegionConsumerGroup(region: string): string {
+    if (!region.trim()) {
+        throw new Error('Region must not be empty');
+    }
+    return `${region.trim().toLowerCase()}-group`;
+}
+
 const STREAM_PREFIX = 'upgrid:website';
 const CONSUMER_GROUP = 'workers';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
