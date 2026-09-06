@@ -29,7 +29,7 @@ async function main() {
         await Promise.all(promises);
         console.log(promises.length);
 
-        await xAckBulk(REGION_ID, response.map(({id}) => id));
+        await xAckBulk(REGION, response.map(({id}) => id));
     }
 }
 

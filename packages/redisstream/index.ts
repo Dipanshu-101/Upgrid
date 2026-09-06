@@ -80,7 +80,7 @@ export async function xReadGroup(regionId: string,workerId: string): Promise<Mes
 }
 
 async function xAck(regionId: string, eventId: string) {
-    await client.xAck(getStreamName(regionId), CONSUMER_GROUP, eventId)
+    await client.xAck(PROBE_STREAM, getRegionConsumerGroup(regionId), eventId)
 }
 
 export async function xAckBulk(consumerGroup: string, eventIds: string[]) {
