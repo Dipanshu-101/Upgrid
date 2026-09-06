@@ -84,4 +84,20 @@ describe.skipIf(!runRedisIntegration)('global probe stream', () => {
     expect(recoveredUs.messages.map(({message}) => message.id)).toContain(probe.id);
     expect(usMessages?.map(({message}) => message.id)).toContain(probe.id);
   });
+
+  it('recovers a probe from a failed worker', async () => {
+    const suffix = Date.now();
+    const probe = { id: `probe-${suffix}`, url: 'https://one.example.com' };
+
+    await xAddBulk([probe]);
+    await xReadGroup(`india-${suffix}`, `failed-worker-${suffix}`);
+
+    const recovered = await xAutoClaim(
+      `india-${suffix}`,
+      `replacement-worker-${suffix}`,
+      0,
+    );
+
+    expect(recovered.messages.map(({message}) => message.id)).toContain(probe.id);
+  });
 });
