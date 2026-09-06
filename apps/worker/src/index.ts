@@ -12,13 +12,14 @@ function getRequiredEnv(name: string): string {
 }
 
 const REGION_ID = getRequiredEnv('REGION_ID');
+const REGION = getRequiredEnv('REGION').trim().toLowerCase();
 const WORKER_ID = getRequiredEnv('WORKER_ID');
 
-console.log(`Worker ${WORKER_ID} listening on region ${REGION_ID}`);
+console.log(`Worker ${WORKER_ID} listening on region ${REGION}`);
 
 async function main() {
     while(1) {
-        const response = await xReadGroup(REGION_ID, WORKER_ID);
+        const response = await xReadGroup(REGION, WORKER_ID);
 
         if (!response) {
             continue;
