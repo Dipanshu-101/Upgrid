@@ -1,4 +1,7 @@
 import { createClient } from "redis";
+import { getRegionConsumerGroup, PROBE_STREAM } from './contract.js';
+
+export { getRegionConsumerGroup, PROBE_STREAM } from './contract.js';
 
 const client = await createClient()
   .on("error", (err) => console.log("Redis Client Error", err))
@@ -17,15 +20,6 @@ export type AutoClaimResult = {
     nextId: string;
     messages: MessageType[];
 };
-export const PROBE_STREAM = 'upgrid:probes';
-
-export function getRegionConsumerGroup(region: string): string {
-    if (!region.trim()) {
-        throw new Error('Region must not be empty');
-    }
-    return `${region.trim().toLowerCase()}-group`;
-}
-
 const STREAM_PREFIX = 'upgrid:website';
 const CONSUMER_GROUP = 'workers';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
