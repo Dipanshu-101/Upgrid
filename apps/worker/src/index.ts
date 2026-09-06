@@ -14,6 +14,7 @@ function getRequiredEnv(name: string): string {
 const REGION_ID = getRequiredEnv('REGION_ID');
 const REGION = getRequiredEnv('REGION').trim().toLowerCase();
 const WORKER_ID = getRequiredEnv('WORKER_ID');
+const PROBE_TIMEOUT_MS = 10_000;
 
 console.log(`Worker ${WORKER_ID} listening on region ${REGION}`);
 
@@ -45,7 +46,7 @@ async function fetchWebsite(url: string, websiteId: string) {
     let status: "Up" | "Down" = "Up";
 
     try {
-        await axios.get(url);
+        await axios.get(url, {timeout: PROBE_TIMEOUT_MS});
     } catch {
         status = "Down";
     }
