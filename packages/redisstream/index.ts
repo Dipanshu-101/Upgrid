@@ -54,9 +54,9 @@ export async function xAddBulk(websties: WebsiteEvent[]) {
 }
 
 export async function xReadGroup(regionId: string,workerId: string): Promise<MessageType[] | undefined> {
-    const streamName = getStreamName(regionId);
+    const consumerGroup = getRegionConsumerGroup(regionId);
     try {
-        await client.xGroupCreate(streamName, CONSUMER_GROUP, '0', { MKSTREAM: true });
+        await client.xGroupCreate(PROBE_STREAM, consumerGroup, '0', { MKSTREAM: true });
     } catch (error) {
         if (!(error instanceof Error) || !error.message.includes('BUSYGROUP')) {
             throw error;
@@ -64,9 +64,9 @@ export async function xReadGroup(regionId: string,workerId: string): Promise<Mes
     }
 
     const res = await client.xReadGroup(
-        CONSUMER_GROUP,
+                consumerGroup,
         workerId,
-        { key: streamName,
+                { key: PROBE_STREAM,
           id: '>'
         },{
                 COUNT: 5,
