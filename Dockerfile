@@ -3,10 +3,16 @@
 # Stage 1: Build stage
 FROM node:24-alpine AS builder
 
+# Install OpenSSL and libc compatibility for Prisma engine in Alpine Linux
+RUN apk add --no-cache openssl libc6-compat
+
 WORKDIR /app
 
 # Enable pnpm
 RUN corepack enable && corepack prepare pnpm@11.23.0 --activate
+
+# Set placeholder DATABASE_URL for build-time Prisma Client generation
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 
 # Copy monorepo configuration files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
@@ -31,6 +37,9 @@ RUN pnpm --filter worker deploy --prod /prod/worker
 
 # Stage 2: Production runner stage
 FROM node:24-alpine AS runner
+
+# Install OpenSSL for Prisma runtime in Alpine Linux
+RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
