@@ -1,0 +1,34 @@
+# Dependency directories
+node_modules
+.pnp
+.pnp.js
+
+# Environment and secrets
+.env
+.env.*
+!.env.worker.example
+
+# Version control and IDE
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Build outputs and caches
+dist
+.turbo
+coverage
+
+# Apps not needed for worker build
+apps/web
+apps/api
+apps/pusher
+apps/tests
+
+# Miscellaneous
+*.log
+docs
+README.md
+plan.md
+Summary.md

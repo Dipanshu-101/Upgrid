@@ -3,7 +3,27 @@ import { getRegionConsumerGroup, PROBE_STREAM } from './contract.js';
 
 export { getRegionConsumerGroup, PROBE_STREAM } from './contract.js';
 
-const client = await createClient()
+const redisHost = process.env.REDIS_HOST;
+const redisPort = process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT, 10) : 6379;
+const redisUsername = process.env.REDIS_USERNAME || undefined;
+const redisPassword = process.env.REDIS_PASSWORD || undefined;
+const redisTls = process.env.REDIS_TLS === 'true' || process.env.REDIS_USE_TLS === 'true';
+
+const clientOptions: Parameters<typeof createClient>[0] = {};
+
+if (process.env.REDIS_URL) {
+  clientOptions.url = process.env.REDIS_URL;
+} else if (redisHost) {
+  clientOptions.socket = {
+    host: redisHost,
+    port: redisPort,
+    ...(redisTls ? { tls: true as const } : {}),
+  };
+  if (redisUsername) clientOptions.username = redisUsername;
+  if (redisPassword) clientOptions.password = redisPassword;
+}
+
+const client = await createClient(clientOptions)
   .on("error", (err) => console.log("Redis Client Error", err))
   .connect();
 
