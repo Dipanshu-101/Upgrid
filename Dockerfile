@@ -17,7 +17,7 @@ ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholde
 # Copy monorepo configuration files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json .npmrc ./
 
-# Copy all packages and worker app
+# Copy all packages (including typescript-config, redisstream, store) and worker app
 COPY packages ./packages
 COPY apps/worker ./apps/worker
 
@@ -31,9 +31,6 @@ RUN pnpm --filter store run generate
 RUN pnpm --filter store run build
 RUN pnpm --filter worker run build
 
-# Prune devDependencies for production runtime
-RUN pnpm prune --prod
-
 # Stage 2: Production runner stage
 FROM node:24-alpine AS runner
 
@@ -44,7 +41,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy root configurations, pruned node_modules, packages, and worker app from builder
+# Copy root configuration, node_modules, packages, and worker app from builder
 COPY --from=builder /app/package.json /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages ./packages
