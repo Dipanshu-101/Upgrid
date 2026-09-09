@@ -17,7 +17,7 @@ ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholde
 # Copy monorepo configuration files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json .npmrc ./
 
-# Copy all packages (including typescript-config, redisstream, store) and worker app
+# Copy all packages and worker app
 COPY packages ./packages
 COPY apps/worker ./apps/worker
 
@@ -31,8 +31,8 @@ RUN pnpm --filter store run generate
 RUN pnpm --filter store run build
 RUN pnpm --filter worker run build
 
-# Deploy isolated production bundle for worker
-RUN pnpm --filter worker deploy --prod /prod/worker
+# Prune devDependencies for production runtime
+RUN pnpm prune --prod
 
 # Stage 2: Production runner stage
 FROM node:24-alpine AS runner
@@ -44,11 +44,20 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy pruned production deployment bundle
-COPY --from=builder --chown=node:node /prod/worker ./
+# Copy root configurations, pruned node_modules, packages, and worker app from builder
+COPY --from=builder /app/package.json /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/apps/worker ./apps/worker
+
+# Ensure node user owns app directory
+RUN chown -R node:node /app
 
 # Run container as non-root user
 USER node
+
+# Set working directory to worker application
+WORKDIR /app/apps/worker
 
 # Container entry point to start worker process
 CMD ["node", "dist/index.js"]
