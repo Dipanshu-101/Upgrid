@@ -15,11 +15,10 @@ RUN corepack enable && corepack prepare pnpm@11.23.0 --activate
 ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 
 # Copy monorepo configuration files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json .npmrc ./
 
-# Copy packages and worker application
-COPY packages/redisstream ./packages/redisstream
-COPY packages/store ./packages/store
+# Copy all packages (including typescript-config, redisstream, store) and worker app
+COPY packages ./packages
 COPY apps/worker ./apps/worker
 
 # Install all dependencies (including devDependencies required for build)
