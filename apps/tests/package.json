@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "pnpm run build && pnpm run start"
+    "test": "pnpm run build && pnpm run start",
+    "test:unit": "vitest run src/redisstream.test.ts src/failureRecovery.test.ts",
+    "test:vitest": "vitest run"
   },
   "keywords": [],
   "author": "",

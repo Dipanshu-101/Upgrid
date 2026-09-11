@@ -1,7 +1,7 @@
 import { createClient } from "redis";
-import { getRegionConsumerGroup, PROBE_STREAM } from './contract.js';
+import { DEFAULT_PROBE_RETENTION_MS, getProbeMinId, getRegionConsumerGroup, PROBE_STREAM } from './contract.js';
 
-export { getRegionConsumerGroup, PROBE_STREAM } from './contract.js';
+export { DEFAULT_PROBE_RETENTION_MS, getProbeMinId, getRegionConsumerGroup, PROBE_STREAM } from './contract.js';
 
 const redisHost = process.env.REDIS_HOST;
 const redisPort = process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT, 10) : 6379;
@@ -27,40 +27,29 @@ const client = await createClient(clientOptions)
   .on("error", (err) => console.log("Redis Client Error", err))
   .connect();
 
-type MessageType = {
+export type MessageType = {
     id: string,
     message: {
         url: string,
         id: string
     }
-    //@ts-ignore
 }
 
 export type AutoClaimResult = {
     nextId: string;
     messages: MessageType[];
 };
-const STREAM_PREFIX = 'upgrid:website';
-const CONSUMER_GROUP = 'workers';
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function getStreamName(regionId: string): string {
-    if (!UUID_PATTERN.test(regionId)) {
-        throw new Error(`Invalid region UUID: ${regionId}`);
-    }
-    return `${STREAM_PREFIX}:${regionId}`;
-}
+type WebsiteEvent = { url: string; id: string };
 
-type WebsiteEvent = {url:string,id:string}
-async function xAdd({url,id}:WebsiteEvent){
-    await client.xAdd (
+async function xAdd({ url, id }: WebsiteEvent) {
+    await client.xAdd(
         PROBE_STREAM, '*', {
             url,
             id
         }
     );
-    }
-
+}
 
 async function ensureConsumerGroup(region: string) {
     try {
@@ -72,9 +61,8 @@ async function ensureConsumerGroup(region: string) {
     }
 }
 
-
-export async function xAddBulk(websties: WebsiteEvent[]) {
-    for (const website of websties) {
+export async function xAddBulk(websites: WebsiteEvent[]) {
+    for (const website of websites) {
         await xAdd({
             url: website.url,
             id: website.id,
@@ -82,23 +70,24 @@ export async function xAddBulk(websties: WebsiteEvent[]) {
     }
 }
 
-export async function xReadGroup(regionId: string,workerId: string): Promise<MessageType[] | undefined> {
+export async function xReadGroup(regionId: string, workerId: string): Promise<MessageType[] | undefined> {
     const consumerGroup = getRegionConsumerGroup(regionId);
     await ensureConsumerGroup(regionId);
 
     const res = await client.xReadGroup(
-                consumerGroup,
+        consumerGroup,
         workerId,
-                { key: PROBE_STREAM,
-          id: '>'
-        },{
-                COUNT: 5,
-                                BLOCK: 5000,
-          }
+        {
+            key: PROBE_STREAM,
+            id: '>'
+        },
+        {
+            COUNT: 5,
+            BLOCK: 5000,
+        }
     );
- //@ts-ignore
-    let messages: MessageType[] | undefined = res?.[0]?.messages;
 
+    let messages: MessageType[] | undefined = (res?.[0]?.messages as MessageType[] | undefined);
     return messages;
 }
 
@@ -125,35 +114,39 @@ export async function xAutoClaim(
 }
 
 async function xAck(regionId: string, eventId: string) {
-    await client.xAck(PROBE_STREAM, getRegionConsumerGroup(regionId), eventId)
+    await client.xAck(PROBE_STREAM, getRegionConsumerGroup(regionId), eventId);
 }
 
 export async function xAckBulk(consumerGroup: string, eventIds: string[]) {
+    if (!eventIds || eventIds.length === 0) return;
     await Promise.all(eventIds.map(eventId => xAck(consumerGroup, eventId)));
 }
 
+/**
+ * Safely trims the probe stream so entries older than `retentionMs` are permanently evicted.
+ * Uses approximate MINID trimming (`~`) to minimize Valkey CPU and memory-reclaim overhead.
+ *
+ * @param retentionMs Maximum age in milliseconds for stored probes. Defaults to DEFAULT_PROBE_RETENTION_MS (15 min).
+ * @returns Number of entries deleted.
+ */
+export async function xTrimProbes(retentionMs: number = DEFAULT_PROBE_RETENTION_MS): Promise<number> {
+    const cutoffTime = Date.now() - retentionMs;
+    const minId = getProbeMinId(cutoffTime > 0 ? cutoffTime : 0);
+    return await client.xTrim(PROBE_STREAM, 'MINID', minId, { strategyModifier: '~' });
+}
 
+/**
+ * Trims probe stream to a specific minimum ID.
+ */
+export async function xTrimMinId(minId: string, exact = false): Promise<number> {
+    return await client.xTrim(PROBE_STREAM, 'MINID', minId, {
+        ...(exact ? { strategyModifier: '=' } : { strategyModifier: '~' }),
+    });
+}
 
-
-
-
-
-
-
-
-
-
-
-// Other application code
-//         │
-//         ↓
-//    xAddBulk()
-//         │
-//         ├── xAdd()
-//         ├── xAdd()
-//         ├── xAdd()
-//         └── xAdd()
-//                 │
-//                 ↓
-//          Redis Stream
-//        upgrid:website
+/**
+ * Permanently deletes specific stream entry IDs from the global probe stream.
+ */
+export async function xDel(eventIds: string | string[]): Promise<number> {
+    return await client.xDel(PROBE_STREAM, eventIds);
+}

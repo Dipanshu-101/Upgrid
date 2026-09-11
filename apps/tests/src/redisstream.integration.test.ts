@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createClient } from 'redis';
-import { xAckBulk, xAddBulk, xAutoClaim, xReadGroup } from 'redisstream/client';
+import { xAckBulk, xAddBulk, xAutoClaim, xReadGroup, xTrimMinId, xTrimProbes } from 'redisstream/client';
 
 const runRedisIntegration = process.env.RUN_REDIS_INTEGRATION === '1';
 const redisClient = runRedisIntegration
@@ -99,5 +99,26 @@ describe.skipIf(!runRedisIntegration)('global probe stream', () => {
     );
 
     expect(recovered.messages.map(({message}) => message.id)).toContain(probe.id);
+  });
+
+  it('trims expired stream entries safely while retaining newer entries', async () => {
+    const suffix = Date.now();
+    const oldProbe = { id: `probe-old-${suffix}`, url: 'https://old.example.com' };
+    const newProbe = { id: `probe-new-${suffix}`, url: 'https://new.example.com' };
+
+    await xAddBulk([oldProbe]);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const cutoffTime = Date.now();
+    await xAddBulk([newProbe]);
+
+    // Trim messages before cutoff
+    await xTrimMinId(`${cutoffTime}-0`, true);
+
+    const group = `trim-test-${suffix}`;
+    const messages = await xReadGroup(group, `worker-${suffix}`);
+    const messageIds = messages?.map(({ message }) => message.id) ?? [];
+
+    expect(messageIds).not.toContain(oldProbe.id);
+    expect(messageIds).toContain(newProbe.id);
   });
 });

@@ -1,5 +1,5 @@
 import { prismaClient } from 'store/client';
-import { xAddBulk } from 'redisstream/client';
+import { DEFAULT_PROBE_RETENTION_MS, xAddBulk, xTrimProbes } from 'redisstream/client';
 
 const DEFAULT_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 
@@ -15,7 +15,20 @@ function getPusherIntervalMs(): number {
   return DEFAULT_INTERVAL_MS;
 }
 
+function getRetentionMs(): number {
+  const envVal = process.env.PROBE_RETENTION_MS;
+  if (envVal) {
+    const parsed = parseInt(envVal, 10);
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      return parsed;
+    }
+    console.warn(`[Pusher] Invalid retention '${envVal}', falling back to default of ${DEFAULT_PROBE_RETENTION_MS}ms`);
+  }
+  return DEFAULT_PROBE_RETENTION_MS;
+}
+
 const INTERVAL_MS = getPusherIntervalMs();
+const RETENTION_MS = getRetentionMs();
 let isPushing = false;
 let isShuttingDown = false;
 let timer: NodeJS.Timeout | null = null;
@@ -43,6 +56,16 @@ async function pushProbeBatch(): Promise<void> {
       await xAddBulk(websites);
     }
     console.log(`[Pusher] Probe batch dispatched successfully in ${Date.now() - startTime}ms`);
+
+    // Safe stream cleanup: evict probes older than retention window across all regions
+    try {
+      const trimmed = await xTrimProbes(RETENTION_MS);
+      if (trimmed > 0) {
+        console.log(`[Pusher] Safe stream cleanup: evicted ${trimmed} expired probe entries (> ${RETENTION_MS / 60000}m old)`);
+      }
+    } catch (trimError) {
+      console.warn('[Pusher] Warning: Failed to trim old stream entries:', trimError);
+    }
   } catch (error) {
     console.error('[Pusher] Error during probe dispatch cycle:', error);
   } finally {
@@ -50,7 +73,7 @@ async function pushProbeBatch(): Promise<void> {
   }
 }
 
-console.log(`[Pusher] Starting Upgrid pusher service (interval: ${INTERVAL_MS}ms / ${(INTERVAL_MS / 1000).toFixed(1)}s)...`);
+console.log(`[Pusher] Starting Upgrid pusher service (interval: ${INTERVAL_MS}ms / ${(INTERVAL_MS / 1000).toFixed(1)}s, retention: ${RETENTION_MS}ms)...`);
 
 // Initial probe batch on startup
 void pushProbeBatch();
