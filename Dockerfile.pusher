@@ -1,0 +1,60 @@
+# Multi-stage Dockerfile for Upgrid Pusher Service
+
+# Stage 1: Build stage
+FROM node:24-alpine AS builder
+
+# Install OpenSSL and libc compatibility for Prisma engine in Alpine Linux
+RUN apk add --no-cache openssl libc6-compat
+
+WORKDIR /app
+
+# Enable pnpm
+RUN corepack enable && corepack prepare pnpm@11.23.0 --activate
+
+# Set placeholder DATABASE_URL for build-time Prisma Client generation
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
+
+# Copy monorepo configuration files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json .npmrc ./
+
+# Copy all packages (including typescript-config, redisstream, store) and pusher app
+COPY packages ./packages
+COPY apps/pusher ./apps/pusher
+
+# Install all dependencies (including devDependencies required for build)
+RUN pnpm install --frozen-lockfile
+
+# Generate Prisma Client for packages/store
+RUN pnpm --filter store run generate
+
+# Build packages and pusher
+RUN pnpm --filter store run build
+RUN pnpm --filter pusher run build
+
+# Stage 2: Production runner stage
+FROM node:24-alpine AS runner
+
+# Install OpenSSL for Prisma runtime in Alpine Linux
+RUN apk add --no-cache openssl libc6-compat
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Copy root configuration, node_modules, packages, and pusher app from builder
+COPY --from=builder /app/package.json /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/apps/pusher ./apps/pusher
+
+# Ensure node user owns app directory
+RUN chown -R node:node /app
+
+# Run container as non-root user
+USER node
+
+# Set working directory to pusher application
+WORKDIR /app/apps/pusher
+
+# Container entry point to start pusher process
+CMD ["node", "dist/index.js"]

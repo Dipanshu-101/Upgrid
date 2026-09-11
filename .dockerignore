@@ -7,6 +7,7 @@ node_modules
 .env
 .env.*
 !.env.worker.example
+!.env.pusher.example
 
 # Version control and IDE
 .git
@@ -20,10 +21,10 @@ dist
 .turbo
 coverage
 
-# Apps not needed for worker build
+# Apps not needed for either build
+# (worker Dockerfile only COPYs apps/worker; pusher Dockerfile only COPYs apps/pusher)
 apps/web
 apps/api
-apps/pusher
 apps/tests
 
 # Miscellaneous
