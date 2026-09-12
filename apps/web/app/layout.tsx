@@ -21,13 +21,16 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "UPGRID — Brutalist Distributed Uptime Monitoring",
+  title: "UpGrid",
   description:
     "High-performance distributed uptime and latency monitoring. Track response times, SLA compliance, and global node health in real-time.",
   keywords: ["uptime monitoring", "latency tracking", "SLA", "distributed systems", "observability"],
   authors: [{ name: "UPGRID ENGINE" }],
+  icons: {
+    icon: "/logo.svg",
+  },
   openGraph: {
-    title: "UPGRID — Brutalist Distributed Uptime Monitoring",
+    title: "UpGrid",
     description: "Real-time distributed uptime and latency monitoring platform.",
     type: "website",
   },
