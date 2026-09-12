@@ -15,6 +15,34 @@ app.use(cors());
 app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+function getRegionMetadata(region: { id: string; name: string }) {
+  const lower = region.name.toLowerCase();
+  if (lower === 'india' || lower.includes('mumbai') || lower === 'ap-south-1') {
+    return { id: region.id, name: region.name, code: 'AP-SOUTH-1', location: 'Mumbai' };
+  }
+  if (lower === 'america' || lower === 'us' || lower.includes('virginia') || lower === 'us-east-1') {
+    return { id: region.id, name: region.name, code: 'US-EAST-1', location: 'Virginia' };
+  }
+  return {
+    id: region.id,
+    name: region.name,
+    code: region.name.toUpperCase().replace(/\s+/g, '-'),
+    location: region.name,
+  };
+}
+
+app.get('/regions', async (req, res, next) => {
+  try {
+    const rawRegions = await prismaClient.region.findMany({
+      orderBy: { name: 'asc' },
+    });
+    const formatted = rawRegions.map(getRegionMetadata);
+    res.json(formatted);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post('/website', authMiddleware, async (req, res, next) => {
   try {
     const authReq = req as AuthRequest;
@@ -28,11 +56,48 @@ app.post('/website', authMiddleware, async (req, res, next) => {
       return res.status(400).send('URL is required');
     }
 
+    const rawInterval = req.body?.interval;
+    const parsedInterval = typeof rawInterval === 'number'
+      ? rawInterval
+      : typeof rawInterval === 'string'
+      ? parseInt(rawInterval, 10)
+      : 180;
+    const interval = !Number.isNaN(parsedInterval) && parsedInterval > 0 ? parsedInterval : 180;
+
+    const requestedRegions: string[] = Array.isArray(req.body?.regions) ? req.body.regions : [];
+
+    const allDbRegions = await prismaClient.region.findMany();
+    const matchedRegionIds: string[] = [];
+
+    for (const reqRegion of requestedRegions) {
+      const match = allDbRegions.find((r) => {
+        const meta = getRegionMetadata(r);
+        return (
+          r.id === reqRegion ||
+          r.name.toLowerCase() === reqRegion.toLowerCase() ||
+          meta.code.toLowerCase() === reqRegion.toLowerCase()
+        );
+      });
+      if (match && !matchedRegionIds.includes(match.id)) {
+        matchedRegionIds.push(match.id);
+      }
+    }
+
+    // Default to all active regions if no valid regions were selected
+    const targetRegionIds = matchedRegionIds.length > 0 ? matchedRegionIds : allDbRegions.map((r) => r.id);
+
     const website = await prismaClient.website.create({
       data: {
         url,
         userId,
+        interval,
         timeAdded: new Date(),
+        regions: {
+          connect: targetRegionIds.map((id) => ({ id })),
+        },
+      },
+      include: {
+        regions: true,
       },
     });
 
@@ -59,15 +124,25 @@ app.get('/status/:websiteId', authMiddleware, async (req, res) => {
       id: websiteId,
     },
     include: {
+      regions: true,
       ticks: {
         orderBy: [{ createdAt: 'desc' }],
-        take: 10,
+        take: 100,
+        include: {
+          region: true,
+        },
       },
     },
   });
 
   if (!website) {
     return res.status(404).send('Website not found');
+  }
+
+  // If website has no regions connected yet (legacy), fallback to all active DB regions
+  if (!website.regions || website.regions.length === 0) {
+    const allRegions = await prismaClient.region.findMany({ orderBy: { name: 'asc' } });
+    (website as any).regions = allRegions;
   }
 
   res.json(website);
@@ -104,7 +179,7 @@ app.post('/user/signin', async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const secret = process.env.JWT_SECRET || 'secret-jwt-key';
+    const secret = process.env.AUTH_SECRET || process.env.JWT_SECRET || 'secret-jwt-key';
 
     const token = jwt.sign({ userId: user.id }, secret);
     res.json({ jwt: token });
@@ -113,25 +188,40 @@ app.post('/user/signin', async (req, res, next) => {
   }
 });
 
-app.get("/websites", authMiddleware, async (req, res) => {
-  const authReq = req as AuthRequest;
-  const userId = authReq.userId;
+app.get("/websites", authMiddleware, async (req, res, next) => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.userId;
 
-  if (!userId) {
-    return res.status(401).send('Unauthorized');
-  }
+    if (!userId) {
+      return res.status(401).send('Unauthorized');
+    }
 
-  const websites = await prismaClient.website.findMany({
-    where: { userId },
-    include: {
-      ticks: {
-        orderBy: [{ createdAt: 'desc' }],
-        take: 10,
+    const websites = await prismaClient.website.findMany({
+      where: { userId },
+      include: {
+        regions: true,
+        ticks: {
+          orderBy: [{ createdAt: 'desc' }],
+          take: 20,
+          include: {
+            region: true,
+          },
+        },
       },
-    },
-  });
+    });
 
-  res.json(websites);
+    const allRegions = await prismaClient.region.findMany({ orderBy: { name: 'asc' } });
+    for (const site of websites) {
+      if (!site.regions || site.regions.length === 0) {
+        (site as any).regions = allRegions;
+      }
+    }
+
+    res.json(websites);
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

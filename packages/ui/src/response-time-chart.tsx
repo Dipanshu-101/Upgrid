@@ -34,21 +34,8 @@ export function ResponseTimeChart({
     y: number;
   } | null>(null);
 
-  // Generate mock telemetry if data is empty
-  const chartData: DataPoint[] = React.useMemo(() => {
-    if (data.length > 0) return data;
-    const now = Date.now();
-    return Array.from({ length: 24 }).map((_, i) => {
-      const time = new Date(now - (23 - i) * 60 * 1000 * 5);
-      const isDown = i === 14;
-      return {
-        timestamp: time,
-        value: isDown ? 0 : Math.floor(120 + Math.sin(i / 2) * 40 + (i % 3) * 15),
-        status: isDown ? "Down" : "Up",
-        region: "AP-SOUTH-1",
-      };
-    });
-  }, [data]);
+  // Use real data only — no mock telemetry generation
+  const chartData: DataPoint[] = data;
 
   // Compute summary stats
   const { min, max, avg, p95 } = React.useMemo(() => {
@@ -208,6 +195,18 @@ export function ResponseTimeChart({
             strokeLinejoin="miter"
             strokeLinecap="square"
           />
+
+          {/* Empty state label if no data */}
+          {points.length === 0 && (
+            <text
+              x={paddingLeft + plotWidth / 2}
+              y={paddingTop + plotHeight / 2}
+              textAnchor="middle"
+              className="fill-ink-muted font-mono text-[11px] font-bold uppercase tracking-wider"
+            >
+              NO PROBE TELEMETRY RECORDED YET
+            </text>
+          )}
 
           {/* Base Axis Border Line */}
           <line

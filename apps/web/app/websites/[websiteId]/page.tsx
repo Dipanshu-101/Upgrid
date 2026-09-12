@@ -56,17 +56,23 @@ export default function WebsiteDetailPage() {
   const handleTogglePause = () => {
     setIsPaused((prev) => {
       const next = !prev;
+      const count = website?.regions?.length || 2;
       if (next) {
         toastInfo("MONITOR PAUSED", "Automated probe checks temporarily suspended.");
       } else {
-        toastSuccess("MONITOR RESUMED", "Automated probe checks resumed across 3 nodes.");
+        toastSuccess("MONITOR RESUMED", `Automated probe checks resumed across ${count} nodes.`);
       }
       return next;
     });
   };
 
-  // Compute telemetry metrics from ticks
-  const ticks: WebsiteTick[] = website?.ticks || [];
+  // Compute telemetry metrics from real ticks (chronological order)
+  const ticks: WebsiteTick[] = React.useMemo(() => {
+    return [...(website?.ticks || [])].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }, [website?.ticks]);
+
   const latestTick = ticks[ticks.length - 1];
   const currentStatus = isPaused ? "Paused" : latestTick ? latestTick.status : "Unknown";
   const isUp = currentStatus.toUpperCase() === "UP";
@@ -75,7 +81,7 @@ export default function WebsiteDetailPage() {
   const totalChecks = ticks.length;
   const upChecks = ticks.filter((t) => t.status.toLowerCase() === "up").length;
   const uptimePercentage =
-    totalChecks > 0 ? `${((upChecks / totalChecks) * 100).toFixed(2)}%` : "100.0%";
+    totalChecks > 0 ? `${((upChecks / totalChecks) * 100).toFixed(2)}%` : "0.0%";
 
   const validLatencies = ticks
     .filter((t) => t.response_time_ms && t.response_time_ms > 0)
@@ -86,19 +92,22 @@ export default function WebsiteDetailPage() {
       ? Math.round(
           validLatencies.reduce((a, b) => a + b, 0) / validLatencies.length
         )
-      : 142;
+      : 0;
 
   const minLatency =
-    validLatencies.length > 0 ? Math.min(...validLatencies) : 98;
+    validLatencies.length > 0 ? Math.min(...validLatencies) : 0;
   const maxLatency =
-    validLatencies.length > 0 ? Math.max(...validLatencies) : 265;
+    validLatencies.length > 0 ? Math.max(...validLatencies) : 0;
 
   const currentLatency =
     latestTick && latestTick.response_time_ms > 0
       ? `${latestTick.response_time_ms}ms`
-      : isUp
-      ? `${avgLatency}ms`
       : "0ms";
+
+  const intervalSec = website?.interval || 180;
+  const intervalDisplay =
+    intervalSec < 60 ? `${intervalSec} SEC` : `${Math.round(intervalSec / 60)} MIN`;
+  const activeRegions = website?.regions || [];
 
   return (
     <AuthGuard>
@@ -208,7 +217,7 @@ export default function WebsiteDetailPage() {
 
                     <div className="flex items-center gap-3">
                       <span className="font-mono text-[10px] font-bold text-ink-muted uppercase">
-                        INTERVAL: 3 MIN
+                        INTERVAL: {intervalDisplay}
                       </span>
                       <StatusBadge
                         status={currentStatus}
@@ -245,7 +254,7 @@ export default function WebsiteDetailPage() {
                           <span className="material-symbols-outlined text-sm text-ink-muted">
                             radar
                           </span>
-                          3 Nodes Active
+                          {activeRegions.length} {activeRegions.length === 1 ? "Node" : "Nodes"} Active
                         </span>
                         <span>•</span>
                         <a
@@ -332,24 +341,31 @@ export default function WebsiteDetailPage() {
 
                     <StatCard
                       title="LATENCY (NOW)"
-                      metric={currentLatency}
-                      sublabel={`AVG: ${avgLatency}ms (MIN: ${minLatency}ms)`}
+                      metric={validLatencies.length > 0 ? currentLatency : "0ms"}
+                      sublabel={
+                        validLatencies.length > 0
+                          ? `AVG: ${avgLatency}ms (MIN: ${minLatency}ms)`
+                          : "NO PROBE DATA"
+                      }
                       icon="ssid_chart"
                       variant="default"
                       delta={{
-                        value: `MAX ${maxLatency}ms`,
+                        value: validLatencies.length > 0 ? `MAX ${maxLatency}ms` : "0ms",
                         type: "neutral",
                       }}
                     />
 
                     <StatCard
                       title="TOTAL PROBES"
-                      metric={totalChecks > 0 ? totalChecks : 24}
+                      metric={totalChecks}
                       sublabel="RECORDED TICKS"
                       icon="history"
                       variant="default"
                       delta={{
-                        value: `${upChecks} UP / ${totalChecks - upChecks} DOWN`,
+                        value:
+                          totalChecks > 0
+                            ? `${upChecks} UP / ${totalChecks - upChecks} DOWN`
+                            : "0 RECORDED",
                         type: "neutral",
                       }}
                     />
@@ -397,11 +413,18 @@ export default function WebsiteDetailPage() {
                   ticks.length > 0
                     ? ticks.map((t) => ({
                         timestamp: t.createdAt,
-                        value: t.response_time_ms || (t.status.toUpperCase() === "UP" ? 120 : 0),
+                        value: t.response_time_ms || 0,
                         status: t.status,
-                        region: t.region_id || "AP-SOUTH-1",
+                        region:
+                          t.region?.code ||
+                          t.region?.name ||
+                          (t.region_id === "11111111-1111-4111-8111-111111111111"
+                            ? "AP-SOUTH-1"
+                            : t.region_id === "22222222-2222-4222-8222-222222222222"
+                            ? "US-EAST-1"
+                            : t.region_id),
                       }))
-                    : undefined
+                    : []
                 }
                 title="RESPONSE TIME TELEMETRY (MS)"
                 height={260}
@@ -421,71 +444,110 @@ export default function WebsiteDetailPage() {
                     DISTRIBUTED REGION BREAKDOWN
                   </h3>
                   <span className="font-mono text-[10px] text-ink-muted uppercase">
-                    3 ACTIVE NODES
+                    {activeRegions.length} ACTIVE {activeRegions.length === 1 ? "NODE" : "NODES"}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {[
-                    {
-                      region: "AP-SOUTH-1",
-                      location: "Mumbai, IN",
-                      latency: `${avgLatency}ms`,
-                      uptime: uptimePercentage,
-                      status: isUp ? "Up" : "Down",
-                    },
-                    {
-                      region: "US-EAST-1",
-                      location: "Virginia, US",
-                      latency: `${Math.max(avgLatency - 35, 45)}ms`,
-                      uptime: "99.99%",
-                      status: isUp ? "Up" : "Down",
-                    },
-                    {
-                      region: "EU-WEST-1",
-                      location: "Dublin, IE",
-                      latency: `${avgLatency + 40}ms`,
-                      uptime: "99.97%",
-                      status: isUp ? "Up" : "Down",
-                    },
-                  ].map((node) => (
-                    <div
-                      key={node.region}
-                      className="flex flex-col border-2 border-border bg-surface p-4 brutal-shadow text-ink"
-                    >
-                      <div className="flex items-center justify-between border-b border-border pb-2 mb-3">
-                        <div className="flex items-center gap-1.5 font-mono text-xs font-bold">
-                          <span className="material-symbols-outlined text-sm text-brand-lime">
-                            location_on
-                          </span>
-                          <span>{node.region}</span>
+                {activeRegions.length === 0 ? (
+                  <div className="border-2 border-border bg-surface p-6 font-mono text-xs text-ink-muted uppercase text-center">
+                    NO REGIONS ASSIGNED TO THIS MONITOR
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {activeRegions.map((node) => {
+                      const nodeTicks = ticks.filter(
+                        (t) =>
+                          t.region_id === node.id ||
+                          t.region?.id === node.id ||
+                          t.region?.name.toLowerCase() === node.name.toLowerCase()
+                      );
+                      const nodeTotal = nodeTicks.length;
+                      const nodeUp = nodeTicks.filter(
+                        (t) => t.status.toLowerCase() === "up"
+                      ).length;
+                      const nodeUptime =
+                        nodeTotal > 0
+                          ? `${((nodeUp / nodeTotal) * 100).toFixed(2)}%`
+                          : "0.0%";
+
+                      const nodeValidLatencies = nodeTicks
+                        .filter((t) => t.response_time_ms && t.response_time_ms > 0)
+                        .map((t) => t.response_time_ms);
+
+                      const nodeAvgLatency =
+                        nodeValidLatencies.length > 0
+                          ? `${Math.round(
+                              nodeValidLatencies.reduce((a, b) => a + b, 0) /
+                                nodeValidLatencies.length
+                            )}ms`
+                          : "0ms";
+
+                      const nodeLatestTick = nodeTicks[nodeTicks.length - 1];
+                      const nodeStatus = isPaused
+                        ? "Paused"
+                        : nodeLatestTick
+                        ? nodeLatestTick.status
+                        : "Unknown";
+                      const nodeIsUp = nodeStatus.toUpperCase() === "UP";
+
+                      const codeLabel =
+                        node.code ||
+                        (node.name.toLowerCase() === "india"
+                          ? "AP-SOUTH-1"
+                          : node.name.toLowerCase() === "america" ||
+                            node.name.toLowerCase() === "us"
+                          ? "US-EAST-1"
+                          : node.name.toUpperCase());
+
+                      const locationLabel =
+                        node.location ||
+                        (node.name.toLowerCase() === "india"
+                          ? "Mumbai, IN"
+                          : node.name.toLowerCase() === "america" ||
+                            node.name.toLowerCase() === "us"
+                          ? "Virginia, US"
+                          : node.name);
+
+                      return (
+                        <div
+                          key={node.id || node.name}
+                          className="flex flex-col border-2 border-border bg-surface p-4 brutal-shadow text-ink"
+                        >
+                          <div className="flex items-center justify-between border-b border-border pb-2 mb-3">
+                            <div className="flex items-center gap-1.5 font-mono text-xs font-bold">
+                              <span className="material-symbols-outlined text-sm text-brand-lime">
+                                location_on
+                              </span>
+                              <span>{codeLabel}</span>
+                            </div>
+                            <StatusBadge
+                              status={nodeStatus}
+                              size="sm"
+                              pulse={nodeIsUp}
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between font-mono text-xs mb-2">
+                            <span className="text-ink-muted">LOCATION:</span>
+                            <span className="font-bold text-ink">{locationLabel}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between font-mono text-xs mb-2">
+                            <span className="text-ink-muted">LATENCY:</span>
+                            <span className="font-bold text-brand-lime bg-black px-1.5 py-0.5">
+                              {nodeAvgLatency}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between font-mono text-xs">
+                            <span className="text-ink-muted">UPTIME:</span>
+                            <span className="font-bold text-ink">{nodeUptime}</span>
+                          </div>
                         </div>
-                        <StatusBadge
-                          status={node.status}
-                          size="sm"
-                          pulse={node.status === "Up"}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between font-mono text-xs mb-2">
-                        <span className="text-ink-muted">LOCATION:</span>
-                        <span className="font-bold text-ink">{node.location}</span>
-                      </div>
-
-                      <div className="flex items-center justify-between font-mono text-xs mb-2">
-                        <span className="text-ink-muted">LATENCY:</span>
-                        <span className="font-bold text-brand-lime bg-black px-1.5 py-0.5">
-                          {node.latency}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between font-mono text-xs">
-                        <span className="text-ink-muted">UPTIME (30D):</span>
-                        <span className="font-bold text-ink">{node.uptime}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* ═══════════════════════════════════════════
@@ -537,7 +599,13 @@ export default function WebsiteDetailPage() {
                                   {timestamp}
                                 </td>
                                 <td className="p-3 font-bold">
-                                  {tick.region_id || "AP-SOUTH-1"}
+                                  {tick.region?.code ||
+                                    tick.region?.name ||
+                                    (tick.region_id === "11111111-1111-4111-8111-111111111111"
+                                      ? "AP-SOUTH-1"
+                                      : tick.region_id === "22222222-2222-4222-8222-222222222222"
+                                      ? "US-EAST-1"
+                                      : tick.region_id || "NODE")}
                                 </td>
                                 <td className="p-3">
                                   <span

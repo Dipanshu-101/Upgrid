@@ -14,7 +14,7 @@ import { EmptyState } from "@repo/ui/empty-state";
 import { SkeletonCard } from "@repo/ui/skeleton";
 import { useAuth } from "../../lib/auth-context";
 import { useToast } from "@repo/ui/toast";
-import { api, Website } from "../../lib/api";
+import { api, Region, Website } from "../../lib/api";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
@@ -25,6 +25,7 @@ export default function MyWebsitePage() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [websites, setWebsites] = React.useState<Website[]>([]);
+  const [availableRegions, setAvailableRegions] = React.useState<Region[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -32,18 +33,21 @@ export default function MyWebsitePage() {
   // Form State
   const [targetUrl, setTargetUrl] = React.useState("");
   const [checkInterval, setCheckInterval] = React.useState("180");
-  const [selectedRegions, setSelectedRegions] = React.useState<string[]>([
-    "AP-SOUTH-1",
-    "US-EAST-1",
-    "EU-WEST-1",
-  ]);
+  const [selectedRegions, setSelectedRegions] = React.useState<string[]>([]);
   const [urlError, setUrlError] = React.useState("");
 
   const fetchWebsites = React.useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await api.getWebsites();
-      setWebsites(data);
+      const [websitesData, regionsData] = await Promise.all([
+        api.getWebsites(),
+        api.getRegions().catch(() => [] as Region[]),
+      ]);
+      setWebsites(websitesData);
+      if (regionsData.length > 0) {
+        setAvailableRegions(regionsData);
+        setSelectedRegions((prev) => (prev.length === 0 ? regionsData.map((r) => r.id) : prev));
+      }
     } catch (err) {
       console.error("Failed to load websites", err);
     } finally {
@@ -89,7 +93,8 @@ export default function MyWebsitePage() {
     }
 
     try {
-      const created = await api.createWebsite(cleanUrl);
+      const intervalSec = parseInt(checkInterval, 10) || 180;
+      const created = await api.createWebsite(cleanUrl, intervalSec, selectedRegions);
       toastSuccess(
         "PROBE INITIATED",
         `Target ${created.url} registered across ${selectedRegions.length} nodes.`
@@ -109,13 +114,13 @@ export default function MyWebsitePage() {
     }
   };
 
-  const toggleRegion = (code: string) => {
+  const toggleRegion = (id: string) => {
     setSelectedRegions((prev) =>
-      prev.includes(code)
+      prev.includes(id)
         ? prev.length > 1
-          ? prev.filter((r) => r !== code)
+          ? prev.filter((r) => r !== id)
           : prev
-        : [...prev, code]
+        : [...prev, id]
     );
   };
 
@@ -232,7 +237,9 @@ export default function MyWebsitePage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {websites.map((site) => {
-                    const ticks = site.ticks || [];
+                    const ticks = [...(site.ticks || [])].sort(
+                      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                    );
                     const latestTick = ticks[ticks.length - 1];
                     const status = latestTick ? latestTick.status : "Unknown";
                     const isUp = status.toUpperCase() === "UP";
@@ -241,9 +248,18 @@ export default function MyWebsitePage() {
                     const latency =
                       latestTick && latestTick.response_time_ms > 0
                         ? `${latestTick.response_time_ms}ms`
-                        : isUp
-                        ? "120ms"
                         : "0ms";
+
+                    const nodeCount =
+                      site.regions && site.regions.length > 0
+                        ? site.regions.length
+                        : availableRegions.length > 0
+                        ? availableRegions.length
+                        : 2;
+
+                    const intervalSec = site.interval || 180;
+                    const intervalDisplay =
+                      intervalSec < 60 ? `${intervalSec} SEC` : `${Math.round(intervalSec / 60)} MIN`;
 
                     return (
                       <div
@@ -297,7 +313,7 @@ export default function MyWebsitePage() {
                                   PROBE NODES
                                 </span>
                                 <span className="font-bold text-ink">
-                                  3 REGIONS
+                                  {nodeCount} {nodeCount === 1 ? "REGION" : "REGIONS"}
                                 </span>
                               </div>
 
@@ -305,7 +321,7 @@ export default function MyWebsitePage() {
                                 <span className="text-ink-muted text-[10px] uppercase block">
                                   INTERVAL
                                 </span>
-                                <span className="font-bold text-ink">3 MIN</span>
+                                <span className="font-bold text-ink">{intervalDisplay}</span>
                               </div>
                             </div>
                           </div>
@@ -429,17 +445,13 @@ export default function MyWebsitePage() {
               </span>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1">
-                {[
-                  { code: "AP-SOUTH-1", name: "Mumbai" },
-                  { code: "US-EAST-1",  name: "Virginia" },
-                  { code: "EU-WEST-1",  name: "Dublin" },
-                ].map((r) => {
-                  const isChecked = selectedRegions.includes(r.code);
+                {availableRegions.map((r) => {
+                  const isChecked = selectedRegions.includes(r.id);
                   return (
                     <button
-                      key={r.code}
+                      key={r.id}
                       type="button"
-                      onClick={() => toggleRegion(r.code)}
+                      onClick={() => toggleRegion(r.id)}
                       className={`flex flex-col p-2 border-2 font-mono text-xs font-bold text-left transition-all ${
                         isChecked
                           ? "border-border bg-brand-lime text-black brutal-shadow-sm"
@@ -447,12 +459,12 @@ export default function MyWebsitePage() {
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span>{r.code}</span>
+                        <span>{r.code || r.name.toUpperCase()}</span>
                         <span className="material-symbols-outlined text-sm">
                           {isChecked ? "check_box" : "check_box_outline_blank"}
                         </span>
                       </div>
-                      <span className="text-[10px] opacity-80">{r.name}</span>
+                      <span className="text-[10px] opacity-80">{r.location || r.name}</span>
                     </button>
                   );
                 })}

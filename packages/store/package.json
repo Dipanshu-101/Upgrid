@@ -6,8 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "generate": "prisma generate",
+    "db:sync": "node sync-db.cjs",
     "build": "pnpm run generate && tsc",
-    "postinstall": "prisma skills sync || exit 0"
+    "postinstall": "prisma generate || exit 0"
   },
   "exports": {
     "./client": "./dist/index.js"

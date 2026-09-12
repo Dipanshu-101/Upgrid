@@ -3,6 +3,7 @@ import { Hanken_Grotesk, Space_Mono } from "next/font/google";
 import { ThemeProvider } from "@repo/ui/theme-provider";
 import { ToastProvider } from "@repo/ui/toast";
 import { AuthProvider } from "../lib/auth-context";
+import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 
 const hankenGrotesk = Hanken_Grotesk({
@@ -76,11 +77,13 @@ export default function RootLayout({
       </head>
       <body className="bg-surface text-ink antialiased min-h-screen">
         <ThemeProvider defaultTheme="light">
-          <AuthProvider>
-            <ToastProvider>
-              {children}
-            </ToastProvider>
-          </AuthProvider>
+          <SessionProvider>
+            <AuthProvider>
+              <ToastProvider>
+                {children}
+              </ToastProvider>
+            </AuthProvider>
+          </SessionProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -31,7 +31,9 @@ export type MessageType = {
     id: string,
     message: {
         url: string,
-        id: string
+        id: string,
+        regions?: string,
+        interval?: string,
     }
 }
 
@@ -40,14 +42,23 @@ export type AutoClaimResult = {
     messages: MessageType[];
 };
 
-type WebsiteEvent = { url: string; id: string };
+export type WebsiteEvent = {
+    url: string;
+    id: string;
+    regions?: string;
+    interval?: number | string;
+};
 
-async function xAdd({ url, id }: WebsiteEvent) {
+async function xAdd({ url, id, regions, interval }: WebsiteEvent) {
+    const fields: Record<string, string> = {
+        url,
+        id,
+    };
+    if (regions) fields.regions = regions;
+    if (interval !== undefined) fields.interval = String(interval);
+
     await client.xAdd(
-        PROBE_STREAM, '*', {
-            url,
-            id
-        }
+        PROBE_STREAM, '*', fields
     );
 }
 
@@ -63,10 +74,7 @@ async function ensureConsumerGroup(region: string) {
 
 export async function xAddBulk(websites: WebsiteEvent[]) {
     for (const website of websites) {
-        await xAdd({
-            url: website.url,
-            id: website.id,
-        });
+        await xAdd(website);
     }
 }
 

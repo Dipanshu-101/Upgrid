@@ -16,13 +16,31 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     return res.status(401).send('Token missing');
   }
 
-  const secret = process.env.JWT_SECRET || 'secret-jwt-key';
+  const secrets = [
+    process.env.AUTH_SECRET,
+    process.env.JWT_SECRET,
+    'secret-jwt-key',
+  ].filter(Boolean) as string[];
 
-  try {
-    const decoded = jwt.verify(token, secret) as { userId: string };
-    (req as any).userId = decoded.userId; // Attach userId to the request object
-    next();
-  } catch (error) {
-    return res.status(403).send('Invalid token');
+  // Remove duplicates while preserving order
+  const uniqueSecrets = Array.from(new Set(secrets));
+
+  let decoded: { userId: string } | null = null;
+  for (const s of uniqueSecrets) {
+    try {
+      decoded = jwt.verify(token, s) as { userId: string };
+      if (decoded && decoded.userId) {
+        break;
+      }
+    } catch {
+      // Try next secret
+    }
   }
-};
+
+  if (decoded && decoded.userId) {
+    (req as any).userId = decoded.userId;
+    return next();
+  }
+
+  return res.status(403).send('Invalid token');
+};

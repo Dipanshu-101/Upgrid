@@ -1,11 +1,9 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// This is the Prisma schema for apps/web (NextAuth OAuth tables)
+// Mirrors packages/store/prisma/schema.prisma — keep in sync.
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -72,24 +70,24 @@ model Website {
 }
 
 model Region {
-  id        String         @id @default(uuid())
-  name      String         @unique
-  ticks     website_tick[]
-  websites  Website[]
+  id       String         @id @default(uuid())
+  name     String         @unique
+  ticks    website_tick[]
+  websites Website[]
 }
 
 model website_tick {
-  id                      String        @id     @default(uuid())
-  response_time_ms        Int
-  status                  WebsiteStatus
-  region                  Region        @relation(fields: [region_id], references: [id])
-  website                 Website       @relation(fields: [website_id], references: [id])
-  region_id               String
-  website_id              String
-  createdAt               DateTime      @default(now())
+  id               String        @id @default(uuid())
+  response_time_ms Int
+  status           WebsiteStatus
+  region           Region        @relation(fields: [region_id], references: [id])
+  website          Website       @relation(fields: [website_id], references: [id])
+  region_id        String
+  website_id       String
+  createdAt        DateTime      @default(now())
 }
 
-enum WebsiteStatus{
+enum WebsiteStatus {
   Up
   Down
   Unknown

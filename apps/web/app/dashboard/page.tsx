@@ -53,7 +53,10 @@ export default function DashboardPage() {
 
       if (statusFilter === "ALL") return true;
 
-      const latestTick = site.ticks && site.ticks[site.ticks.length - 1];
+      const ticks = [...(site.ticks || [])].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      const latestTick = ticks[ticks.length - 1];
       const currentStatus = latestTick
         ? latestTick.status.toUpperCase()
         : "UNKNOWN";
@@ -72,7 +75,9 @@ export default function DashboardPage() {
   let downMonitorsCount = 0;
 
   websites.forEach((site) => {
-    const ticks = site.ticks || [];
+    const ticks = [...(site.ticks || [])].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
     const latestTick = ticks[ticks.length - 1];
     if (latestTick && latestTick.status.toLowerCase() === "down") {
       downMonitorsCount++;
@@ -93,7 +98,7 @@ export default function DashboardPage() {
   const uptimePercentage =
     totalTicks > 0
       ? `${((upTicks / totalTicks) * 100).toFixed(2)}%`
-      : "100.0%";
+      : "0.0%";
 
   const avgLatency =
     latencyCount > 0 ? `${Math.round(latencySum / latencyCount)}ms` : "—";
@@ -354,7 +359,9 @@ export default function DashboardPage() {
                       </thead>
                       <tbody className="divide-y-2 divide-border font-mono text-xs">
                         {filteredWebsites.map((site) => {
-                          const ticks = site.ticks || [];
+                          const ticks = [...(site.ticks || [])].sort(
+                            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                          );
                           const latestTick = ticks[ticks.length - 1];
                           const status = latestTick
                             ? latestTick.status
@@ -362,8 +369,6 @@ export default function DashboardPage() {
                           const latency =
                             latestTick && latestTick.response_time_ms > 0
                               ? `${latestTick.response_time_ms}ms`
-                              : status.toUpperCase() === "UP"
-                              ? "120ms"
                               : "—";
 
                           const formattedDate = latestTick

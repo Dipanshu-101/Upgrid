@@ -137,8 +137,10 @@ Railway will run the Express.js REST API service.
    | `NODE_ENV` | `production` | Enables production mode |
    | `PORT` | `3003` | Listening port for Express |
    | `DATABASE_URL` | `postgresql://...` | Neon PostgreSQL pooled URL with `?sslmode=require` |
-   | `JWT_SECRET` | `<random-64-character-secret>` | Secret for signing JWT authentication tokens |
+   | `JWT_SECRET` | `<random-64-character-secret>` | Secret for signing JWT authentication tokens (legacy/fallback) |
+   | `AUTH_SECRET` | `<same-secret-as-vercel>` | Shared secret to verify NextAuth tokens from frontend |
    | `CORS_ORIGIN` | `https://your-app.vercel.app` | Restricts API access to your Vercel frontend domain |
+
 4. **Generate Public Domain:**
    - Under **Settings** → **Networking**, click **Generate Domain** (e.g. `https://upgrid-api.up.railway.app`).
    - Copy this URL for the Vercel frontend.
@@ -161,7 +163,22 @@ Vercel will host the Next.js frontend application.
    | Variable | Value | Notes |
    | :--- | :--- | :--- |
    | `NEXT_PUBLIC_API_URL` | `https://upgrid-api.up.railway.app` | Railway API public domain from Phase 2 |
-4. **Deploy:**
+   | `DATABASE_URL` | `postgresql://...` | Neon PostgreSQL pooled connection string for NextAuth adapter |
+   | `AUTH_SECRET` | `<random-64-character-secret>` | Secret for signing Auth.js / NextAuth tokens |
+   | `AUTH_GOOGLE_ID` | `<google-client-id>` | Google Cloud Console OAuth 2.0 Client ID |
+   | `AUTH_GOOGLE_SECRET` | `<google-client-secret>` | Google Cloud Console OAuth 2.0 Client Secret |
+   | `AUTH_GITHUB_ID` | `<github-client-id>` | GitHub Developer Settings OAuth App Client ID |
+   | `AUTH_GITHUB_SECRET` | `<github-client-secret>` | GitHub Developer Settings OAuth App Client Secret |
+
+4. **Configure OAuth Provider Callback URLs:**
+   - **Google Cloud Console:**
+     - Authorized Javascript origins: `https://your-upgrid-domain.vercel.app`
+     - Authorized redirect URIs: `https://your-upgrid-domain.vercel.app/api/auth/callback/google`
+   - **GitHub Developer Settings:**
+     - Homepage URL: `https://your-upgrid-domain.vercel.app`
+     - Authorization callback URL: `https://your-upgrid-domain.vercel.app/api/auth/callback/github`
+
+5. **Deploy:**
    - Click **Deploy**. Once built, your site will be live at `https://<your-project>.vercel.app`.
 
 ---

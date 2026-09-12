@@ -34,6 +34,13 @@ const NAV_LINKS = [
       { label: "Register", href: "/signup" },
     ],
   },
+  {
+    heading: "LEGAL",
+    links: [
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms of Service", href: "/terms" },
+    ],
+  },
 ];
 
 export function LandingFooter({ className = "", ...props }: LandingFooterProps) {
@@ -133,7 +140,11 @@ export function LandingFooter({ className = "", ...props }: LandingFooterProps) 
       {/* Bottom Legal Bar */}
       <div className="border-t-2 border-border bg-surface px-4 sm:px-6 lg:px-8 py-4">
         <div className="mx-auto max-w-6xl flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] font-bold uppercase tracking-widest text-ink-muted">
-          <span>© {year} UPGRID ENGINE — ALL RIGHTS RESERVED</span>
+          <div className="flex items-center gap-4">
+            <span>© {year} UPGRID ENGINE — ALL RIGHTS RESERVED</span>
+            <a href="/privacy" className="hover:text-brand-lime transition-colors">PRIVACY</a>
+            <a href="/terms" className="hover:text-brand-lime transition-colors">TERMS</a>
+          </div>
           <div className="flex items-center gap-4">
             <span>ENGINE v2.4-PROBE</span>
             <span className="text-brand-lime">OPEN SOURCE</span>

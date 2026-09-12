@@ -1,19 +1,7 @@
 import { prismaClient } from 'store/client';
-import { DEFAULT_PROBE_RETENTION_MS, xAddBulk, xTrimProbes } from 'redisstream/client';
+import { DEFAULT_PROBE_RETENTION_MS, WebsiteEvent, xAddBulk, xTrimProbes } from 'redisstream/client';
 
-const DEFAULT_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
-
-function getPusherIntervalMs(): number {
-  const envVal = process.env.PUSHER_INTERVAL_MS || process.env.PROBE_INTERVAL_MS;
-  if (envVal) {
-    const parsed = parseInt(envVal, 10);
-    if (!Number.isNaN(parsed) && parsed > 0) {
-      return parsed;
-    }
-    console.warn(`[Pusher] Invalid interval '${envVal}', falling back to default of ${DEFAULT_INTERVAL_MS}ms`);
-  }
-  return DEFAULT_INTERVAL_MS;
-}
+const SCHEDULER_TICK_MS = process.env.PUSHER_TICK_MS ? parseInt(process.env.PUSHER_TICK_MS, 10) : 5000; // Check every 5s
 
 function getRetentionMs(): number {
   const envVal = process.env.PROBE_RETENTION_MS;
@@ -27,15 +15,13 @@ function getRetentionMs(): number {
   return DEFAULT_PROBE_RETENTION_MS;
 }
 
-const INTERVAL_MS = getPusherIntervalMs();
 const RETENTION_MS = getRetentionMs();
 let isPushing = false;
 let isShuttingDown = false;
 let timer: NodeJS.Timeout | null = null;
 
-async function pushProbeBatch(): Promise<void> {
+async function runSchedulerTick(): Promise<void> {
   if (isPushing) {
-    console.warn('[Pusher] Previous probe batch is still running; skipping tick to avoid duplicate/overlapping dispatch.');
     return;
   }
   if (isShuttingDown) {
@@ -45,23 +31,64 @@ async function pushProbeBatch(): Promise<void> {
   isPushing = true;
   const startTime = Date.now();
   try {
+    const allDbRegions = await prismaClient.region.findMany();
     const websites = await prismaClient.website.findMany({
-      select: {
-        url: true,
-        id: true,
+      include: {
+        regions: true,
       },
     });
-    console.log(`[Pusher] Fetched ${websites.length} websites for probing`);
-    if (websites.length > 0) {
-      await xAddBulk(websites);
-    }
-    console.log(`[Pusher] Probe batch dispatched successfully in ${Date.now() - startTime}ms`);
 
-    // Safe stream cleanup: evict probes older than retention window across all regions
+    const now = Date.now();
+    const dueWebsites: typeof websites = [];
+    const eventsToDispatch: WebsiteEvent[] = [];
+
+    for (const site of websites) {
+      const intervalSec = site.interval && site.interval > 0 ? site.interval : 180;
+      const intervalMs = intervalSec * 1000;
+      const lastProbedMs = site.lastProbedAt ? site.lastProbedAt.getTime() : 0;
+
+      if (now - lastProbedMs >= intervalMs) {
+        dueWebsites.push(site);
+
+        // Determine target regions
+        const activeRegions = site.regions && site.regions.length > 0 ? site.regions : allDbRegions;
+        const targetRegionIdentifiers = [
+          ...activeRegions.map((r) => r.id),
+          ...activeRegions.map((r) => r.name.toLowerCase()),
+        ];
+
+        eventsToDispatch.push({
+          url: site.url,
+          id: site.id,
+          regions: JSON.stringify(targetRegionIdentifiers),
+          interval: intervalSec,
+        });
+      }
+    }
+
+    if (eventsToDispatch.length > 0) {
+      console.log(`[Pusher] Dispatching ${eventsToDispatch.length} due monitors across regions (total registered: ${websites.length})`);
+      await xAddBulk(eventsToDispatch);
+
+      const dispatchTimestamp = new Date();
+      await prismaClient.website.updateMany({
+        where: {
+          id: {
+            in: dueWebsites.map((w) => w.id),
+          },
+        },
+        data: {
+          lastProbedAt: dispatchTimestamp,
+        },
+      });
+      console.log(`[Pusher] Probe batch dispatched and timestamps updated in ${Date.now() - startTime}ms`);
+    }
+
+    // Evict probes older than retention window across streams
     try {
       const trimmed = await xTrimProbes(RETENTION_MS);
       if (trimmed > 0) {
-        console.log(`[Pusher] Safe stream cleanup: evicted ${trimmed} expired probe entries (> ${RETENTION_MS / 60000}m old)`);
+        console.log(`[Pusher] Evicted ${trimmed} expired stream entries (> ${RETENTION_MS / 60000}m old)`);
       }
     } catch (trimError) {
       console.warn('[Pusher] Warning: Failed to trim old stream entries:', trimError);
@@ -73,15 +100,15 @@ async function pushProbeBatch(): Promise<void> {
   }
 }
 
-console.log(`[Pusher] Starting Upgrid pusher service (interval: ${INTERVAL_MS}ms / ${(INTERVAL_MS / 1000).toFixed(1)}s, retention: ${RETENTION_MS}ms)...`);
+console.log(`[Pusher] Starting Upgrid dynamic scheduler service (tick resolution: ${SCHEDULER_TICK_MS}ms, retention: ${RETENTION_MS}ms)...`);
 
-// Initial probe batch on startup
-void pushProbeBatch();
+// Initial probe tick
+void runSchedulerTick();
 
-// Schedule recurring batches every 2 minutes (or configured interval)
+// Recurring scheduler tick
 timer = setInterval(() => {
-  void pushProbeBatch();
-}, INTERVAL_MS);
+  void runSchedulerTick();
+}, SCHEDULER_TICK_MS);
 
 function handleShutdown(signal: string) {
   console.log(`[Pusher] Received ${signal}. Shutting down cleanly...`);
@@ -94,3 +121,4 @@ function handleShutdown(signal: string) {
 
 process.on('SIGINT', () => handleShutdown('SIGINT'));
 process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+

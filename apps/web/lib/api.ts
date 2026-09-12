@@ -8,6 +8,13 @@ export interface ApiUser {
   username: string;
 }
 
+export interface Region {
+  id: string;
+  name: string;
+  code?: string;
+  location?: string;
+}
+
 export interface WebsiteTick {
   id: string;
   response_time_ms: number;
@@ -15,6 +22,7 @@ export interface WebsiteTick {
   region_id?: string;
   website_id: string;
   createdAt: string;
+  region?: Region;
 }
 
 export interface Website {
@@ -22,6 +30,9 @@ export interface Website {
   url: string;
   userId: string;
   timeAdded: string;
+  interval?: number;
+  lastProbedAt?: string | null;
+  regions?: Region[];
   ticks?: WebsiteTick[];
 }
 
@@ -70,9 +81,23 @@ export const api = {
     return res.data;
   },
 
+  // Regions
+  getRegions: async (): Promise<Region[]> => {
+    const res = await apiClient.get<Region[]>("/regions");
+    return res.data;
+  },
+
   // Websites
-  createWebsite: async (url: string): Promise<Website> => {
-    const res = await apiClient.post<Website>("/website", { url });
+  createWebsite: async (
+    url: string,
+    interval?: number,
+    regions?: string[]
+  ): Promise<Website> => {
+    const res = await apiClient.post<Website>("/website", {
+      url,
+      ...(interval !== undefined ? { interval } : {}),
+      ...(regions !== undefined ? { regions } : {}),
+    });
     return res.data;
   },
 

@@ -39,17 +39,17 @@ async function main() {
 
             // Process probes concurrently
             const probeResults = await Promise.all(
-                response.map(({ id, message }) => processProbe(id, message.url, message.id))
+                response.map(({ id, message }) => processProbe(id, message.url, message.id, message.regions))
             );
 
-            // Only acknowledge probes whose telemetry was successfully written to the database
+            // Only acknowledge probes whose telemetry was successfully handled or skipped
             const successfulAcks = probeResults.filter((id): id is string => id !== null);
 
             if (successfulAcks.length > 0) {
                 await xAckBulk(REGION, successfulAcks);
             }
 
-            console.log(`[Worker ${WORKER_ID}] Processed ${response.length} probes (${successfulAcks.length} acknowledged)`);
+            console.log(`[Worker ${WORKER_ID}] Handled ${response.length} probes (${successfulAcks.length} acknowledged)`);
         } catch (loopError) {
             console.error(`[Worker ${WORKER_ID}] Error in worker processing loop:`, loopError);
             if (!isRunning) break;
@@ -61,7 +61,32 @@ async function main() {
     console.log(`[Worker ${WORKER_ID}] Worker shutdown completed.`);
 }
 
-async function processProbe(streamMessageId: string, url: string, websiteId: string): Promise<string | null> {
+async function processProbe(
+    streamMessageId: string,
+    url: string,
+    websiteId: string,
+    regionsPayload?: string,
+): Promise<string | null> {
+    // If target regions are specified in the event, verify that this worker's region is selected
+    if (regionsPayload) {
+        let isRegionSelected = false;
+        try {
+            const parsed = JSON.parse(regionsPayload);
+            if (Array.isArray(parsed)) {
+                const lowerParsed = parsed.map((item) => String(item).toLowerCase());
+                isRegionSelected = lowerParsed.includes(REGION_ID.toLowerCase()) || lowerParsed.includes(REGION.toLowerCase());
+            }
+        } catch {
+            const list = regionsPayload.split(',').map((item) => item.trim().toLowerCase());
+            isRegionSelected = list.includes(REGION_ID.toLowerCase()) || list.includes(REGION.toLowerCase());
+        }
+
+        if (!isRegionSelected) {
+            // Region is not selected for this monitor; skip network probe and ACK message
+            return streamMessageId;
+        }
+    }
+
     const startTime = Date.now();
     let status: "Up" | "Down" = "Up";
 
